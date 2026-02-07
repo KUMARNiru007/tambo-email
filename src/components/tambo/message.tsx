@@ -750,26 +750,6 @@ const MessageRenderedComponentArea = React.forwardRef<
   MessageRenderedComponentAreaProps
 >(({ className, children, ...props }, ref) => {
   const { message, role } = useMessageContext();
-  const [canvasExists, setCanvasExists] = React.useState(false);
-
-  // Check if canvas exists on mount and window resize
-  React.useEffect(() => {
-    const checkCanvasExists = () => {
-      const canvas = document.querySelector('[data-canvas-space="true"]');
-      setCanvasExists(!!canvas);
-    };
-
-    // Check on mount
-    checkCanvasExists();
-
-    // Set up resize listener
-    window.addEventListener("resize", checkCanvasExists);
-
-    // Clean up
-    return () => {
-      window.removeEventListener("resize", checkCanvasExists);
-    };
-  }, []);
 
   if (
     !message.renderedComponent ||
@@ -786,32 +766,7 @@ const MessageRenderedComponentArea = React.forwardRef<
       data-slot="message-rendered-component-area"
       {...props}
     >
-      {children ??
-        (canvasExists ? (
-          <div className="flex justify-start pl-4">
-            <button
-              onClick={() => {
-                if (typeof window !== "undefined") {
-                  window.dispatchEvent(
-                    new CustomEvent("tambo:showComponent", {
-                      detail: {
-                        messageId: message.id,
-                        component: message.renderedComponent,
-                      },
-                    }),
-                  );
-                }
-              }}
-              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer group"
-              aria-label="View component in canvas"
-            >
-              View component
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="w-full pt-2 px-2">{message.renderedComponent}</div>
-        ))}
+      {children ?? message.renderedComponent}
     </div>
   );
 });

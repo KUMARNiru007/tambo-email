@@ -132,6 +132,8 @@ const ThreadContentMessages = React.forwardRef<
     (message) => message.role !== "system" && !message.parentMessageId,
   );
 
+  const isEmpty = filteredMessages.length === 0;
+
   return (
     <div
       ref={ref}
@@ -139,6 +141,24 @@ const ThreadContentMessages = React.forwardRef<
       data-slot="thread-content-messages"
       {...props}
     >
+      {isEmpty && (
+        <div
+          className="rounded-lg border border-border/60 bg-muted/30 px-4 py-5 text-center"
+          data-slot="thread-empty-state"
+        >
+          <p className="text-sm font-medium text-foreground mb-1">
+            I’m your email assistant
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            I can show your dashboard, summarize your inbox, list contacts and
+            templates, and help you compose and send emails. Generated charts
+            and cards appear in the canvas on the right.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Click a suggestion below or type what you need.
+          </p>
+        </div>
+      )}
       {filteredMessages.map((message, index) => {
         return (
           <div

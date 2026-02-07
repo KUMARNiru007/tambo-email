@@ -369,19 +369,29 @@ export const MessageThreadFull = React.forwardRef<
       {
         id: "suggestion-1",
         title: "Send email",
-        detailedSuggestion: "Help me compose and send an email",
+        detailedSuggestion:
+          "Help me compose and send an email. Find the recipient from my contacts if I mention a name, then show me a preview and let me send or save as draft.",
         messageId: "compose-query",
       },
       {
         id: "suggestion-2",
-        title: "View analytics",
-        detailedSuggestion: "Show my email statistics and analytics",
+        title: "Email dashboard",
+        detailedSuggestion:
+          "Show my email analytics dashboard: charts for emails sent over the last 7 days and by category, plus top contacts and response rate.",
         messageId: "analytics-query",
       },
       {
         id: "suggestion-3",
+        title: "Inbox summary",
+        detailedSuggestion:
+          "Summarize my inbox and show my recent received emails in a summary card.",
+        messageId: "inbox-query",
+      },
+      {
+        id: "suggestion-4",
         title: "Manage contacts",
-        detailedSuggestion: "Help me manage my email contacts",
+        detailedSuggestion:
+          "List my email contacts as selectable cards so I can pick who to email or manage them.",
         messageId: "contacts-query",
       },
     ];
@@ -395,7 +405,7 @@ export const MessageThreadFull = React.forwardRef<
           <ThreadContainer
             ref={mergedRef}
             disableSidebarSpacing
-            className={className}
+            className={cn("flex-1 min-w-0 flex flex-col", className)}
             {...props}
           >
             <ScrollableMessageContainer className="p-4">
@@ -422,8 +432,8 @@ export const MessageThreadFull = React.forwardRef<
               </MessageInput>
             </div>
 
-            {/* Message suggestions */}
-            <MessageSuggestions initialSuggestions={defaultSuggestions}>
+            {/* Message suggestions - show 4 for empty thread */}
+            <MessageSuggestions initialSuggestions={defaultSuggestions} maxSuggestions={4}>
               <MessageSuggestionsList />
             </MessageSuggestions>
           </ThreadContainer>

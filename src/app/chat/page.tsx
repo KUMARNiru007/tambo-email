@@ -2,8 +2,13 @@
 
 import { MessageThreadFull } from "@/components/tambo/message-thread-full";
 import { useMcpServers } from "@/components/tambo/mcp-config-modal";
+import { emailAssistantContextHelpers } from "@/lib/email-context-helpers";
 import { components, tools } from "@/lib/tambo";
-import { TamboProvider } from "@tambo-ai/react";
+import {
+  currentPageContextHelper,
+  currentTimeContextHelper,
+  TamboProvider,
+} from "@tambo-ai/react";
 import { TamboMcpProvider } from "@tambo-ai/react/mcp";
 import { AuthGate } from "@/components/auth/AuthGate";
 
@@ -12,19 +17,24 @@ export default function Home() {
   const mcpServers = useMcpServers();
 
   return (
-     <AuthGate>
-    <TamboProvider
-      apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-      components={components}
-      tools={tools}
-      tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
-    >
+    <AuthGate>
+      <TamboProvider
+        apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
+        components={components}
+        tools={tools}
+        tamboUrl={process.env.NEXT_PUBLIC_TAMBO_URL}
+        contextHelpers={{
+          ...emailAssistantContextHelpers,
+          currentTime: currentTimeContextHelper,
+          currentPage: currentPageContextHelper,
+        }}
+      >
       <TamboMcpProvider mcpServers={mcpServers}>
         <div className="h-screen">
           <MessageThreadFull contextKey="tambo-template" />
         </div>
       </TamboMcpProvider>
     </TamboProvider>
-    </AuthGate>
+  </AuthGate>
   );
 }

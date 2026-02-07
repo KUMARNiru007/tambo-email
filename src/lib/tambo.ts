@@ -10,7 +10,13 @@
 
 import { Graph, graphSchema } from "@/components/tambo/graph";
 import { DataCard, dataCardSchema } from "@/components/ui/card-data";
+import { EmailActions, emailActionsSchema } from "@/components/tambo/email-actions";
 import { EmailPreview } from "@/components/tambo/email-preview";
+import {
+  InboxSummaryCard,
+  inboxSummaryCardSchema,
+} from "@/components/tambo/inbox-summary-card";
+import { Map, mapSchema } from "@/components/tambo/map";
 import { saveEmailDraft } from "@/services/save-email";
 import { listEmails } from "@/services/list-emails";
 import { sendEmailAndPersist } from "@/services/send-email-and-persist";
@@ -21,6 +27,7 @@ import { listTemplates } from "@/services/list-templates";
 import { saveTemplate } from "@/services/save-template";
 import { summarizeEmails } from "@/services/summarize-emails";
 import { emailStats } from "@/services/email-stats";
+import { getEmailDashboard } from "@/services/get-email-dashboard";
 
 import type { TamboComponent } from "@tambo-ai/react";
 import { TamboTool } from "@tambo-ai/react";
@@ -111,8 +118,27 @@ export const tools: TamboTool[] = [
   },
   {
     name: "saveTemplate",
-    description: "Save a reusable email template with a name and content",
-    tool: saveTemplate,
+    description:
+      "Save a reusable email template. Pass an object with name (template name/title) and content (template body text). Call once per template.",
+    tool: async (...toolArgs: unknown[]) => {
+      const first = toolArgs[0];
+      const second = toolArgs[1];
+      let name = "";
+      let content = "";
+      if (first != null && typeof first === "object" && !Array.isArray(first)) {
+        const obj = first as Record<string, unknown>;
+        const inner =
+          obj.param1 != null && typeof obj.param1 === "object"
+            ? (obj.param1 as Record<string, unknown>)
+            : obj;
+        name = String(inner?.name ?? "").trim();
+        content = String(inner?.content ?? "");
+      } else if (typeof first === "string" && typeof second === "string") {
+        name = first.trim();
+        content = second;
+      }
+      return saveTemplate({ name, content });
+    },
     toolSchema: z.function().args(
       z.object({
         name: z.string().describe("Template name/title"),
@@ -136,6 +162,13 @@ export const tools: TamboTool[] = [
     name: "emailStats",
     description: "Get email analytics including count of sent emails and draft emails for the current user",
     tool: emailStats,
+    toolSchema: z.function().args(z.object({})),
+  },
+  {
+    name: "getEmailDashboard",
+    description:
+      "Get full email analytics dashboard data for the current user: charts (emails sent per day, category breakdown), top contacts, and response rate. Use this when the user asks for dashboard, analytics, email statistics, or how they are doing. Returned data is formatted for Graph components (sentPerDayChart, categoryChart).",
+    tool: getEmailDashboard,
     toolSchema: z.function().args(z.object({})),
   },
 ];
@@ -172,5 +205,26 @@ export const components: TamboComponent[] = [
       subject: z.string().describe("Email subject"),
       body: z.string().describe("Email body content"),
     }),
+  },
+  {
+    name: "EmailActions",
+    description:
+      "Two buttons: Save as draft and Send now. Use immediately after EmailPreview with the same to, subject, and body so the user can persist the email.",
+    component: EmailActions,
+    propsSchema: emailActionsSchema,
+  },
+  {
+    name: "Map",
+    description:
+      "Display an interactive map with markers and optional heatmap. Use for showing locations (e.g. contact offices, event places). Provide center (lat/lng), zoom, and markers array with lat, lng, label.",
+    component: Map,
+    propsSchema: mapSchema,
+  },
+  {
+    name: "InboxSummaryCard",
+    description:
+      "Display an inbox summary with title, summary text, count, and optional list of email subjects/dates. Use after calling summarizeEmails: pass summary, count, and items (array of { subject, date }) from the tool result.",
+    component: InboxSummaryCard,
+    propsSchema: inboxSummaryCardSchema,
   },
 ];
