@@ -8,7 +8,7 @@ export const emailAssistantContextHelpers: ContextHelpers = {
   emailAssistantInstructions: () => ({
     instructions: [
       "You are an email assistant. Prefer rendering UI components instead of only describing data.",
-      "For analytics, dashboard, or 'how am I doing': call getEmailDashboard then render Graph with data and title from sentPerDayChart (use sentPerDayChart.data and sentPerDayChart.title), and if categoryChart is not null render a second Graph with categoryChart.data and categoryChart.title.",
+      "For analytics, dashboard, statistics, or 'how am I doing' requests: call getEmailDashboard then render AnalyticsDashboard with the complete result object (sentPerDayChart, categoryChart, topContacts, responseRate, summary). AnalyticsDashboard is the PREFERRED component for all analytics requests - it's a beautiful comprehensive dashboard.",
       "For 'show my contacts' or 'list contacts': call listContacts then render DataCard with options built from the result (id, label, value, description).",
       "For 'show my templates' or 'list templates': call listTemplates then render DataCard with the template list.",
       "For 'inbox summary' or 'what's in my inbox': call summarizeEmails then render InboxSummaryCard with the returned summary, count, and items (subject + date from emails).",

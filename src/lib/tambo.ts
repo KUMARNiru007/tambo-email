@@ -16,10 +16,11 @@ import {
   InboxSummaryCard,
   inboxSummaryCardSchema,
 } from "@/components/tambo/inbox-summary-card";
-import { Map, mapSchema } from "@/components/tambo/map";
+import { AnalyticsDashboard, analyticsDashboardSchema } from "@/components/tambo/analytics-dashboard";
 import { saveEmailDraft } from "@/services/save-email";
 import { listEmails } from "@/services/list-emails";
 import { sendEmailAndPersist } from "@/services/send-email-and-persist";
+import { receiveEmail } from "@/services/receive-email";
 import { listContacts } from "@/services/list-contacts";
 import { saveContact } from "@/services/save-contact";
 import { findContactByName, findContactByEmail } from "@/services/find-contact";
@@ -61,6 +62,18 @@ export const tools: TamboTool[] = [
     toolSchema: z.function().args(
       z.object({
         to: z.string().email().describe("Recipient email address"),
+        subject: z.string().describe("Email subject line"),
+        body: z.string().describe("Email body content"),
+      })
+    ),
+  },
+  {
+    name: "receiveEmail",
+    description: "Simulate receiving an email (for demo/testing). Saves the email to the database as received so it appears in inbox summaries.",
+    tool: receiveEmail,
+    toolSchema: z.function().args(
+      z.object({
+        from: z.string().email().describe("Sender email address"),
         subject: z.string().describe("Email subject line"),
         body: z.string().describe("Email body content"),
       })
@@ -167,7 +180,7 @@ export const tools: TamboTool[] = [
   {
     name: "getEmailDashboard",
     description:
-      "Get full email analytics dashboard data for the current user: charts (emails sent per day, category breakdown), top contacts, and response rate. Use this when the user asks for dashboard, analytics, email statistics, or how they are doing. Returned data is formatted for Graph components (sentPerDayChart, categoryChart).",
+      "Get full email analytics dashboard data for the current user: charts (emails sent per day, category breakdown), top contacts, and response rate. Use this when the user asks for dashboard, analytics, email statistics, or how they are doing. Returned data is formatted for AnalyticsDashboard component.",
     tool: getEmailDashboard,
     toolSchema: z.function().args(z.object({})),
   },
@@ -182,9 +195,16 @@ export const tools: TamboTool[] = [
  */
 export const components: TamboComponent[] = [
   {
+    name: "AnalyticsDashboard",
+    description:
+      "PREFERRED for comprehensive analytics. A beautiful all-in-one dashboard combining multiple charts, key metrics, top contacts, and insights. Use when the user asks for analytics, dashboard, statistics, or 'how am I doing'. Requires data from getEmailDashboard tool. Shows: emails sent per day (bar chart), category breakdown (pie chart), key metrics cards (total sent, daily average, response rate, top contacts count), top contacts list with progress bars, and AI-generated insights.",
+    component: AnalyticsDashboard,
+    propsSchema: analyticsDashboardSchema,
+  },
+  {
     name: "Graph",
     description:
-      "A component that renders various types of charts (bar, line, pie) using Recharts. Perfect for visualizing email analytics, trends, and statistics.",
+      "A component that renders individual charts (bar, line, pie). Use only for single-chart visualizations when AnalyticsDashboard is not appropriate.",
     component: Graph,
     propsSchema: graphSchema,
   },
@@ -212,13 +232,6 @@ export const components: TamboComponent[] = [
       "Two buttons: Save as draft and Send now. Use immediately after EmailPreview with the same to, subject, and body so the user can persist the email.",
     component: EmailActions,
     propsSchema: emailActionsSchema,
-  },
-  {
-    name: "Map",
-    description:
-      "Display an interactive map with markers and optional heatmap. Use for showing locations (e.g. contact offices, event places). Provide center (lat/lng), zoom, and markers array with lat, lng, label.",
-    component: Map,
-    propsSchema: mapSchema,
   },
   {
     name: "InboxSummaryCard",

@@ -3,7 +3,7 @@
 import { generateDashboardData } from "@/services/generate-dashboard-data";
 
 /**
- * Get email dashboard data formatted for AI-rendered Graph components.
+ * Get email dashboard data formatted for AI-rendered AnalyticsDashboard component.
  * Use this tool when the user asks for analytics, dashboard, or email statistics.
  * Returns chart-ready data: sentPerDayChart (bar), categoryChart (pie), and summary stats.
  */
@@ -26,6 +26,7 @@ export async function getEmailDashboard() {
     },
   };
 
+  // Only include categoryChart if there's data
   const categoryChart =
     raw.categoryBreakdown.length > 0
       ? {
@@ -37,12 +38,11 @@ export async function getEmailDashboard() {
               {
                 label: "Count",
                 data: raw.categoryBreakdown.map((c) => c.count),
-                color: undefined,
               },
             ],
           },
         }
-      : null;
+      : undefined; // Use undefined instead of null
 
   return {
     sentPerDayChart,
