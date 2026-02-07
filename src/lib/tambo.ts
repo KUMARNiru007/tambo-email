@@ -81,11 +81,11 @@ export const tools: TamboTool[] = [
   },
   {
     name: "listEmails",
-    description: "List email drafts or sent emails. Can filter by status or return all emails.",
+    description: "List emails. Can filter by status (draft, sent, received) or return all emails.",
     tool: listEmails,
     toolSchema: z.function().args(
       z.object({
-        status: z.enum(["draft", "sent"]).optional().describe("Filter by email status"),
+        status: z.enum(["draft", "sent", "received"]).optional().describe("Filter by email status"),
       }).optional()
     ),
   },

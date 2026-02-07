@@ -37,13 +37,16 @@ import type { Suggestion } from "@tambo-ai/react";
 import type { VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { X, Mail, Clock, FileEdit, BarChart3, TrendingUp } from "lucide-react";
+import { X, Mail, Clock, FileEdit, BarChart3, Inbox, FileText } from "lucide-react";
 import { listEmails } from "@/services/list-emails";
 import { emailStats } from "@/services/email-stats";
+import { listTemplates } from "@/services/list-templates";
 import { SendButton } from "@/components/tambo/send-button";
 import { DraftButton } from "@/components/tambo/draft-button";
 import { ContactButton } from "@/components/tambo/contact-button";
 import { ContactListModal } from "@/components/tambo/contact-list-modal";
+import { InboxButton } from "@/components/tambo/inbox-button";
+import { TemplateButton } from "@/components/tambo/template-button";
 
 /**
  * Email list modal component
@@ -51,13 +54,14 @@ import { ContactListModal } from "@/components/tambo/contact-list-modal";
 interface EmailListModalProps {
   emails: Array<{
     id: string;
+    from?: string;
     to: string;
     subject: string;
     body: string;
-    status: "sent" | "draft";
+    status: "sent" | "draft" | "received";
     createdAt: Date;
   }>;
-  type: "sent" | "draft";
+  type: "sent" | "draft" | "received";
   isLoading: boolean;
   onClose: () => void;
 }
@@ -73,13 +77,15 @@ const EmailListModal = React.forwardRef<HTMLDivElement, EmailListModalProps>(
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-2">
-              {type === "sent" ? (
-                <Mail className="h-5 w-5 text-green-600" />
-              ) : (
-                <FileEdit className="h-5 w-5 text-orange-600" />
-              )}
+              {type === "sent" && <Mail className="h-5 w-5 text-green-600" />}
+              {type === "draft" && <FileEdit className="h-5 w-5 text-orange-600" />}
+              {type === "received" && <Inbox className="h-5 w-5 text-blue-600" />}
               <h2 className="text-lg font-semibold">
-                {type === "sent" ? "Sent Emails" : "Draft Emails"}
+                {type === "sent"
+                  ? "Sent Emails"
+                  : type === "draft"
+                    ? "Draft Emails"
+                    : "Inbox Emails"}
               </h2>
               <span className="text-sm text-muted-foreground">
                 ({emails.length})
@@ -103,12 +109,14 @@ const EmailListModal = React.forwardRef<HTMLDivElement, EmailListModalProps>(
             ) : emails.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="text-muted-foreground mb-2">
-                  No {type} emails found
+                  No {type === "received" ? "inbox" : type} emails found
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {type === "sent"
                     ? "Emails you send will appear here"
-                    : "Save drafts to see them here"}
+                    : type === "draft"
+                      ? "Save drafts to see them here"
+                      : "Received emails will appear here"}
                 </p>
               </div>
             ) : (
@@ -121,9 +129,11 @@ const EmailListModal = React.forwardRef<HTMLDivElement, EmailListModalProps>(
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium">To:</span>
+                          <span className="text-sm font-medium">
+                            {type === "received" ? "From:" : "To:"}
+                          </span>
                           <span className="text-sm text-muted-foreground">
-                            {email.to}
+                            {type === "received" ? (email.from || "Unknown sender") : email.to}
                           </span>
                         </div>
                         <h3 className="font-semibold text-foreground">
@@ -158,6 +168,90 @@ const EmailListModal = React.forwardRef<HTMLDivElement, EmailListModalProps>(
   },
 );
 EmailListModal.displayName = "EmailListModal";
+
+interface TemplateListModalProps {
+  templates: Array<{
+    id: string;
+    name: string;
+    content: string;
+    created_at?: string;
+  }>;
+  isLoading: boolean;
+  onClose: () => void;
+}
+
+const TemplateListModal = React.forwardRef<HTMLDivElement, TemplateListModalProps>(
+  ({ templates, isLoading, onClose }, ref) => {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div
+          ref={ref}
+          className="bg-background rounded-lg shadow-xl max-w-3xl w-full max-h-[80vh] flex flex-col"
+        >
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-violet-600" />
+              <h2 className="text-lg font-semibold">Email Templates</h2>
+              <span className="text-sm text-muted-foreground">({templates.length})</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-backdrop rounded-md transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-muted-foreground">Loading templates...</div>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="text-muted-foreground mb-2">No templates found</div>
+                <p className="text-sm text-muted-foreground">
+                  Save templates in chat and they will appear here
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
+                    className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-foreground">{template.name}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {template.created_at
+                            ? new Date(template.created_at).toLocaleString(undefined, {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
+                            : "--"}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                      {template.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  },
+);
+TemplateListModal.displayName = "TemplateListModal";
 
 /**
  * Stats Card Component for Analytics
@@ -263,14 +357,15 @@ export const MessageThreadFull = React.forwardRef<
     const mergedRef = useMergeRefs<HTMLDivElement | null>(ref, containerRef);
 
     // State for managing email list view
-    const [emailView, setEmailView] = React.useState<"sent" | "draft" | null>(null);
+    const [emailView, setEmailView] = React.useState<"sent" | "draft" | "received" | null>(null);
     const [emails, setEmails] = React.useState<
       Array<{
         id: string;
+        from?: string;
         to: string;
         subject: string;
         body: string;
-        status: "sent" | "draft";
+        status: "sent" | "draft" | "received";
         createdAt: Date;
       }>
     >([]);
@@ -278,6 +373,18 @@ export const MessageThreadFull = React.forwardRef<
 
     // State for managing contact list view
     const [isContactModalOpen, setIsContactModalOpen] = React.useState(false);
+
+    // State for managing template list view
+    const [isTemplateModalOpen, setIsTemplateModalOpen] = React.useState(false);
+    const [templates, setTemplates] = React.useState<
+      Array<{
+        id: string;
+        name: string;
+        content: string;
+        created_at?: string;
+      }>
+    >([]);
+    const [isLoadingTemplates, setIsLoadingTemplates] = React.useState(false);
 
     // State for email stats
     const [stats, setStats] = React.useState({ sent: 0, drafts: 0 });
@@ -304,7 +411,7 @@ export const MessageThreadFull = React.forwardRef<
     }, []);
 
     // Function to load emails based on status
-    const loadEmails = React.useCallback(async (status: "sent" | "draft") => {
+    const loadEmails = React.useCallback(async (status: "sent" | "draft" | "received") => {
       setIsLoadingEmails(true);
       try {
         const emailList = await listEmails(status);
@@ -329,9 +436,26 @@ export const MessageThreadFull = React.forwardRef<
       onDraftClick?.();
     }, [loadEmails, onDraftClick]);
 
+    const handleInboxClick = React.useCallback(async () => {
+      await loadEmails("received");
+    }, [loadEmails]);
+
     // Handle contact button click
     const handleContactClick = React.useCallback(() => {
       setIsContactModalOpen(true);
+    }, []);
+
+    const handleTemplateClick = React.useCallback(async () => {
+      setIsLoadingTemplates(true);
+      try {
+        const templateList = await listTemplates();
+        setTemplates(templateList);
+        setIsTemplateModalOpen(true);
+      } catch (error) {
+        console.error("Failed to load templates:", error);
+      } finally {
+        setIsLoadingTemplates(false);
+      }
     }, []);
 
     // Close email view
@@ -347,6 +471,11 @@ export const MessageThreadFull = React.forwardRef<
       loadStats(); // Refresh stats when closing
     }, [loadStats]);
 
+    const closeTemplateModal = React.useCallback(() => {
+      setIsTemplateModalOpen(false);
+      setTemplates([]);
+    }, []);
+
     const threadHistorySidebar = (
       <ThreadHistory contextKey={contextKey} position={historyPosition}>
         <ThreadHistoryHeader />
@@ -357,6 +486,8 @@ export const MessageThreadFull = React.forwardRef<
         {/* Action Buttons */}
         <SendButton onClick={handleSendClick} />
         <DraftButton onClick={handleDraftClick} />
+        <InboxButton onClick={handleInboxClick} />
+        <TemplateButton onClick={handleTemplateClick} />
         <ContactButton onClick={handleContactClick} />
         
         <ThreadHistoryNewButton />
@@ -457,6 +588,14 @@ export const MessageThreadFull = React.forwardRef<
           isOpen={isContactModalOpen}
           onClose={closeContactModal}
         />
+
+        {isTemplateModalOpen && (
+          <TemplateListModal
+            templates={templates}
+            isLoading={isLoadingTemplates}
+            onClose={closeTemplateModal}
+          />
+        )}
       </>
     );
   },

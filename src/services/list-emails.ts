@@ -2,7 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/superbase/server";
 
-export async function listEmails(status?: "draft" | "sent") {
+export async function listEmails(status?: "draft" | "sent" | "received") {
   const supabase = createSupabaseServerClient();
 
   const {
@@ -25,10 +25,11 @@ export async function listEmails(status?: "draft" | "sent") {
 
   return (data || []).map((email) => ({
     id: email.id,
+    from: email.from_email,
     to: email.to_email, 
     subject: email.subject,
     body: email.body,
-    status: email.status as "sent" | "draft",
+    status: email.status as "sent" | "draft" | "received",
     createdAt: email.created_at,
   }));
 }
