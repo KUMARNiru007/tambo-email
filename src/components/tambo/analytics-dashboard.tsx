@@ -22,7 +22,7 @@ export const analyticsDashboardSchema = z.object({
   sentPerDayChart: z.object({
     title: z.string(),
     data: z.object({
-      type: z.literal("bar"),
+      type: z.enum(["bar", "line", "area"]),
       labels: z.array(z.string()),
       datasets: z.array(z.object({
         label: z.string(),
@@ -65,42 +65,42 @@ const StatCard = ({
   label, 
   value, 
   trend, 
-  color = "blue" 
+  tone = "primary"
 }: { 
   icon: React.ElementType;
   label: string;
   value: string | number;
   trend?: string;
-  color?: "blue" | "green" | "purple" | "orange";
+  tone?: "primary" | "success" | "warning" | "neutral";
 }) => {
-  const colorClasses = {
-    blue: "bg-blue-50 text-blue-600 border-blue-200",
-    green: "bg-green-50 text-green-600 border-green-200",
-    purple: "bg-purple-50 text-purple-600 border-purple-200",
-    orange: "bg-orange-50 text-orange-600 border-orange-200",
+  const toneClasses = {
+    primary: "border-border bg-card text-card-foreground",
+    success: "border-border bg-card text-card-foreground",
+    warning: "border-border bg-card text-card-foreground",
+    neutral: "border-border bg-card text-card-foreground",
   };
 
-  const iconBgClasses = {
-    blue: "bg-blue-100",
-    green: "bg-green-100",
-    purple: "bg-purple-100",
-    orange: "bg-orange-100",
+  const iconToneClasses = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    neutral: "bg-muted text-foreground",
   };
 
   return (
     <div className={cn(
-      "rounded-xl border p-4 transition-all hover:shadow-md",
-      colorClasses[color]
+      "rounded-xl border p-4 transition-colors hover:bg-muted/35",
+      toneClasses[tone]
     )}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium opacity-80">{label}</p>
-          <p className="text-2xl font-bold mt-1">{value}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
           {trend && (
-            <p className="text-xs mt-1 opacity-70">{trend}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{trend}</p>
           )}
         </div>
-        <div className={cn("p-2 rounded-lg", iconBgClasses[color])}>
+        <div className={cn("rounded-lg p-2", iconToneClasses[tone])}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -114,47 +114,69 @@ const StatCard = ({
  */
 export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDashboardProps>(
   ({ sentPerDayChart, categoryChart, topContacts, responseRate, summary, className, ...props }, ref) => {
+    const sentChartData = sentPerDayChart?.data;
+    const sentLabels = Array.isArray(sentChartData?.labels) ? sentChartData.labels : [];
+    const sentValues = Array.isArray(sentChartData?.datasets?.[0]?.data)
+      ? sentChartData.datasets[0].data
+      : [];
+    const safeTopContacts = Array.isArray(topContacts) ? topContacts : [];
+    const safeResponseRate = Number.isFinite(responseRate) ? responseRate : 0;
+    const safeSummary = typeof summary === "string" ? summary : "No analytics summary available yet.";
+
     // Calculate total emails sent
-    const totalSent = sentPerDayChart.data.datasets[0]?.data.reduce((a, b) => a + b, 0) || 0;
-    
+    const totalSent = sentValues.reduce((a, b) => a + b, 0);
+
     // Calculate average per day
-    const avgPerDay = sentPerDayChart.data.labels.length > 0 
-      ? (totalSent / sentPerDayChart.data.labels.length).toFixed(1)
+    const avgPerDay = sentLabels.length > 0
+      ? (totalSent / sentLabels.length).toFixed(1)
       : "0";
 
-    // Transform data for bar chart
-    const barChartData = sentPerDayChart.data.labels.map((label, index) => ({
+    // Transform data for trend chart
+    const barChartData = sentLabels.map((label, index) => ({
       name: label,
-      value: sentPerDayChart.data.datasets[0]?.data[index] || 0,
+      value: sentValues[index] || 0,
     }));
 
     // Transform data for pie chart if available
-    const pieChartData = categoryChart?.data.labels.map((label, index) => ({
+    const categoryLabels = Array.isArray(categoryChart?.data?.labels) ? categoryChart.data.labels : [];
+    const categoryValues = Array.isArray(categoryChart?.data?.datasets?.[0]?.data)
+      ? categoryChart.data.datasets[0].data
+      : [];
+    const pieChartData = categoryLabels.map((label, index) => ({
       name: label,
-      value: categoryChart.data.datasets[0]?.data[index] || 0,
-      fill: ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"][index % 5],
-    })) || [];
+      value: categoryValues[index] || 0,
+      fill: [
+        "var(--chart-1)",
+        "var(--chart-2)",
+        "var(--chart-3)",
+        "var(--chart-4)",
+        "var(--chart-5)",
+      ][index % 5],
+    }));
 
     // Calculate trend (comparing first half to second half)
     const midPoint = Math.floor(barChartData.length / 2);
     const firstHalf = barChartData.slice(0, midPoint).reduce((a, b) => a + b.value, 0);
     const secondHalf = barChartData.slice(midPoint).reduce((a, b) => a + b.value, 0);
-    const trend = secondHalf > firstHalf ? "↑ Increasing" : secondHalf < firstHalf ? "↓ Decreasing" : "→ Stable";
+    const trend = secondHalf > firstHalf ? "Increasing" : secondHalf < firstHalf ? "Decreasing" : "Stable";
 
     return (
       <div
         ref={ref}
-        className={cn("w-full space-y-6 p-6 bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl border border-slate-200", className)}
+        className={cn(
+          "w-full space-y-6 rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-sm md:p-6",
+          className
+        )}
         {...props}
       >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-blue-600" />
+            <h2 className="flex items-center gap-2 text-xl font-semibold md:text-2xl">
+              <BarChart3 className="h-5 w-5 text-primary md:h-6 md:w-6" />
               Email Analytics Dashboard
             </h2>
-            <p className="text-sm text-slate-600 mt-1">{summary}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{safeSummary}</p>
           </div>
         </div>
 
@@ -165,85 +187,94 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
             label="Total Sent"
             value={totalSent}
             trend="Last 7 days"
-            color="blue"
+            tone="primary"
           />
           <StatCard
             icon={TrendingUp}
             label="Daily Average"
             value={avgPerDay}
             trend={trend}
-            color="green"
+            tone="success"
           />
           <StatCard
             icon={Target}
             label="Response Rate"
-            value={`${responseRate}%`}
+            value={`${safeResponseRate}%`}
             trend="Engagement"
-            color="purple"
+            tone="warning"
           />
           <StatCard
             icon={Users}
             label="Top Contacts"
-            value={topContacts.length}
+            value={safeTopContacts.length}
             trend="Active recipients"
-            color="orange"
+            tone="neutral"
           />
         </div>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bar Chart - Emails Sent Per Day */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Mail className="h-5 w-5 text-blue-600" />
-              {sentPerDayChart.title}
+          {/* Trend Chart - Emails Sent Per Day */}
+          <div className="rounded-xl border border-border bg-background p-5">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-semibold md:text-lg">
+              <Mail className="h-5 w-5 text-primary" />
+              {sentPerDayChart?.title ?? "Emails sent"}
             </h3>
             <div className="h-64">
               <RechartsCore.ResponsiveContainer width="100%" height="100%">
-                <RechartsCore.BarChart data={barChartData}>
+                <RechartsCore.AreaChart data={barChartData}>
+                  <defs>
+                    <linearGradient id="sentTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
                   <RechartsCore.CartesianGrid 
                     strokeDasharray="3 3" 
                     vertical={false}
-                    stroke="#e2e8f0"
+                    stroke="var(--border)"
                   />
                   <RechartsCore.XAxis
                     dataKey="name"
-                    stroke="#64748b"
+                    stroke="var(--muted-foreground)"
                     axisLine={false}
                     tickLine={false}
                     style={{ fontSize: '12px' }}
                   />
                   <RechartsCore.YAxis
-                    stroke="#64748b"
+                    stroke="var(--muted-foreground)"
                     axisLine={false}
                     tickLine={false}
                     style={{ fontSize: '12px' }}
                   />
                   <RechartsCore.Tooltip
-                    cursor={{ fill: '#f1f5f9', opacity: 0.3 }}
+                    cursor={{ fill: "var(--muted)", opacity: 0.4 }}
                     contentStyle={{
-                      backgroundColor: 'white',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
                     }}
                   />
-                  <RechartsCore.Bar
+                  <RechartsCore.Area
                     dataKey="value"
-                    fill="#3b82f6"
-                    radius={[8, 8, 0, 0]}
+                    type="monotone"
+                    stroke="var(--chart-3)"
+                    strokeWidth={2}
+                    fill="url(#sentTrendFill)"
+                    dot={{ r: 3, fill: "var(--chart-3)" }}
+                    activeDot={{ r: 5 }}
                   />
-                </RechartsCore.BarChart>
+                </RechartsCore.AreaChart>
               </RechartsCore.ResponsiveContainer>
             </div>
           </div>
 
           {/* Pie Chart - Category Breakdown */}
           {categoryChart && pieChartData.length > 0 && (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-                <PieChartIcon className="h-5 w-5 text-green-600" />
-                {categoryChart.title}
+            <div className="rounded-xl border border-border bg-background p-5">
+              <h3 className="mb-4 flex items-center gap-2 text-base font-semibold md:text-lg">
+                <PieChartIcon className="h-5 w-5 text-primary" />
+                {categoryChart.title ?? "Emails by category"}
               </h3>
               <div className="h-64">
                 <RechartsCore.ResponsiveContainer width="100%" height="100%">
@@ -262,10 +293,9 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
                     />
                     <RechartsCore.Tooltip
                       contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                        borderRadius: "8px",
                       }}
                     />
                     <RechartsCore.Legend 
@@ -279,30 +309,30 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
         </div>
 
         {/* Top Contacts Section */}
-        {topContacts.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-600" />
+        {safeTopContacts.length > 0 && (
+          <div className="rounded-xl border border-border bg-background p-5">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-semibold md:text-lg">
+              <Users className="h-5 w-5 text-primary" />
               Top Contacts
             </h3>
             <div className="space-y-3">
-              {topContacts.map((contact, index) => {
-                const maxCount = Math.max(...topContacts.map(c => c.emailCount));
+              {safeTopContacts.map((contact, index) => {
+                const maxCount = Math.max(...safeTopContacts.map((c) => c.emailCount), 1);
                 const percentage = (contact.emailCount / maxCount) * 100;
                 
                 return (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-semibold text-sm">
+                  <div key={index} className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                       {index + 1}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium text-slate-900">{contact.name}</span>
-                        <span className="text-sm text-slate-600 font-semibold">{contact.emailCount} emails</span>
+                        <span className="font-medium text-foreground">{contact.name}</span>
+                        <span className="text-sm font-semibold text-muted-foreground">{contact.emailCount} emails</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                         <div 
-                          className="bg-gradient-to-r from-purple-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                          className="h-full rounded-full bg-primary transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -315,17 +345,17 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
         )}
 
         {/* Footer Insights */}
-        <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-6 text-white">
+        <div className="rounded-xl border border-border bg-muted/30 p-5">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-white/20 rounded-lg">
-              <Clock className="h-6 w-6" />
+            <div className="rounded-lg bg-primary/10 p-3">
+              <Clock className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h4 className="font-semibold text-lg mb-1">Quick Insights</h4>
-              <p className="text-sm opacity-90">
+              <h4 className="mb-1 text-base font-semibold">Quick Insights</h4>
+              <p className="text-sm text-muted-foreground">
                 You're maintaining a {trend.toLowerCase()} pattern with {avgPerDay} emails per day on average. 
-                Your {responseRate}% response rate is {responseRate >= 70 ? 'excellent' : responseRate >= 50 ? 'good' : 'needs improvement'}.
-                {topContacts.length > 0 && ` Your top contact is ${topContacts[0].name} with ${topContacts[0].emailCount} emails.`}
+                Your {safeResponseRate}% response rate is {safeResponseRate >= 70 ? 'excellent' : safeResponseRate >= 50 ? 'good' : 'needs improvement'}.
+                {safeTopContacts.length > 0 && ` Your top contact is ${safeTopContacts[0].name} with ${safeTopContacts[0].emailCount} emails.`}
               </p>
             </div>
           </div>

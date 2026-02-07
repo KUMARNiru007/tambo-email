@@ -5,7 +5,7 @@ import { generateDashboardData } from "@/services/generate-dashboard-data";
 /**
  * Get email dashboard data formatted for AI-rendered AnalyticsDashboard component.
  * Use this tool when the user asks for analytics, dashboard, or email statistics.
- * Returns chart-ready data: sentPerDayChart (bar), categoryChart (pie), and summary stats.
+ * Returns chart-ready data: sentPerDayChart (area trend), categoryChart (pie), and summary stats.
  */
 export async function getEmailDashboard() {
   const raw = await generateDashboardData();
@@ -14,7 +14,7 @@ export async function getEmailDashboard() {
   const sentPerDayChart = {
     title: "Emails sent (last 7 days)",
     data: {
-      type: "bar" as const,
+      type: "area" as const,
       labels: raw.sentPerDay.map((d) => d.day),
       datasets: [
         {

@@ -197,7 +197,7 @@ export const components: TamboComponent[] = [
   {
     name: "AnalyticsDashboard",
     description:
-      "PREFERRED for comprehensive analytics. A beautiful all-in-one dashboard combining multiple charts, key metrics, top contacts, and insights. Use when the user asks for analytics, dashboard, statistics, or 'how am I doing'. Requires data from getEmailDashboard tool. Shows: emails sent per day (bar chart), category breakdown (pie chart), key metrics cards (total sent, daily average, response rate, top contacts count), top contacts list with progress bars, and AI-generated insights.",
+      "PREFERRED for comprehensive analytics. A beautiful all-in-one dashboard combining multiple charts, key metrics, top contacts, and insights. Use when the user asks for analytics, dashboard, statistics, or 'how am I doing'. Requires data from getEmailDashboard tool. Shows: emails sent per day (trend chart), category breakdown (pie chart), key metrics cards (total sent, daily average, response rate, top contacts count), top contacts list with progress bars, and AI-generated insights.",
     component: AnalyticsDashboard,
     propsSchema: analyticsDashboardSchema,
   },
