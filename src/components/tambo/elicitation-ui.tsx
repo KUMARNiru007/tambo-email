@@ -8,8 +8,37 @@ import {
 import * as React from "react";
 import { useMemo, useState } from "react";
 
-type FieldSchema =
-  TamboElicitationRequest["requestedSchema"]["properties"][string];
+// Define proper types for JSON Schema
+interface JSONSchema {
+  type?: "string" | "number" | "integer" | "boolean" | "object" | "array";
+  description?: string;
+  default?: unknown;
+  enum?: string[];
+  enumNames?: string[];
+  format?: string;
+  minLength?: number;
+  maxLength?: number;
+  minimum?: number;
+  maximum?: number;
+  pattern?: string;
+}
+
+interface JSONSchemaObject {
+  properties: Record<string, JSONSchema>;
+  required?: string[];
+}
+
+// Type guard to check if requestedSchema is a JSONSchemaObject
+function isJSONSchemaObject(schema: unknown): schema is JSONSchemaObject {
+  return (
+    typeof schema === "object" &&
+    schema !== null &&
+    "properties" in schema &&
+    typeof (schema as { properties: unknown }).properties === "object"
+  );
+}
+
+type FieldSchema = JSONSchema;
 
 /**
  * Props for individual field components
@@ -85,12 +114,11 @@ const EnumField: React.FC<FieldProps> = ({
   required,
   autoFocus,
 }) => {
-  if (schema.type !== "string" || !("enum" in schema)) {
+  if (schema.type !== "string" || !schema.enum) {
     return null;
   }
   const options = schema.enum ?? [];
-  const optionNames =
-    "enumNames" in schema ? (schema.enumNames ?? []) : options;
+  const optionNames = schema.enumNames ?? options;
   const stringValue = value as string | undefined;
 
   return (
@@ -140,7 +168,7 @@ const StringField: React.FC<FieldProps> = ({
 
   // Map JSON Schema format to HTML5 input type
   const getInputType = (): string => {
-    const format = "format" in schema ? schema.format : undefined;
+    const format = schema.format;
     switch (format) {
       case "email":
         return "email";
@@ -179,8 +207,8 @@ const StringField: React.FC<FieldProps> = ({
             : "border-border focus:ring-accent",
         )}
         placeholder={schema.description ?? name}
-        minLength={"minLength" in schema ? schema.minLength : undefined}
-        maxLength={"maxLength" in schema ? schema.maxLength : undefined}
+        minLength={schema.minLength}
+        maxLength={schema.maxLength}
         required={required}
         aria-invalid={hasError || undefined}
         aria-describedby={hasError ? errorId : undefined}
@@ -209,7 +237,6 @@ const NumberField: React.FC<FieldProps> = ({
   if (schema.type !== "number" && schema.type !== "integer") {
     return null;
   }
-  const numberSchema = schema;
   const numberValue = value as number | undefined;
   const hasError = !!validationError;
   const inputId = React.useId();
@@ -241,9 +268,9 @@ const NumberField: React.FC<FieldProps> = ({
             : "border-border focus:ring-accent",
         )}
         placeholder={schema.description ?? name}
-        min={numberSchema.minimum}
-        max={numberSchema.maximum}
-        step={numberSchema.type === "integer" ? 1 : "any"}
+        min={schema.minimum}
+        max={schema.maximum}
+        step={schema.type === "integer" ? 1 : "any"}
         required={required}
         aria-invalid={hasError || undefined}
         aria-describedby={hasError ? errorId : undefined}
@@ -267,7 +294,7 @@ const Field: React.FC<FieldProps> = (props) => {
     return <BooleanField {...props} />;
   }
 
-  if (schema.type === "string" && "enum" in schema) {
+  if (schema.type === "string" && schema.enum) {
     return <EnumField {...props} />;
   }
 
@@ -287,6 +314,10 @@ const Field: React.FC<FieldProps> = (props) => {
  * (one field that is boolean or enum)
  */
 function isSingleEntryMode(request: TamboElicitationRequest): boolean {
+  if (!isJSONSchemaObject(request.requestedSchema)) {
+    return false;
+  }
+  
   const fields = Object.entries(request.requestedSchema.properties);
 
   if (fields.length !== 1) {
@@ -296,7 +327,7 @@ function isSingleEntryMode(request: TamboElicitationRequest): boolean {
   const [, schema] = fields[0];
 
   return (
-    schema.type === "boolean" || (schema.type === "string" && "enum" in schema)
+    schema.type === "boolean" || (schema.type === "string" && !!schema.enum)
   );
 }
 
@@ -321,34 +352,31 @@ function validateField(
 
   // String validation
   if (schema.type === "string") {
-    const stringSchema = schema;
     const stringValue = String(value);
 
     if (
-      "minLength" in stringSchema &&
-      stringSchema.minLength !== undefined &&
-      stringValue.length < stringSchema.minLength
+      schema.minLength !== undefined &&
+      stringValue.length < schema.minLength
     ) {
       return {
         valid: false,
-        error: `Minimum length is ${stringSchema.minLength} characters`,
+        error: `Minimum length is ${schema.minLength} characters`,
       };
     }
 
     if (
-      "maxLength" in stringSchema &&
-      stringSchema.maxLength !== undefined &&
-      stringValue.length > stringSchema.maxLength
+      schema.maxLength !== undefined &&
+      stringValue.length > schema.maxLength
     ) {
       return {
         valid: false,
-        error: `Maximum length is ${stringSchema.maxLength} characters`,
+        error: `Maximum length is ${schema.maxLength} characters`,
       };
     }
 
-    if ("pattern" in stringSchema && stringSchema.pattern) {
+    if (schema.pattern) {
       try {
-        const regex = new RegExp(stringSchema.pattern as string);
+        const regex = new RegExp(schema.pattern);
         if (!regex.test(stringValue)) {
           return {
             valid: false,
@@ -361,8 +389,8 @@ function validateField(
     }
 
     // Format validation
-    if ("format" in stringSchema && stringSchema.format) {
-      switch (stringSchema.format) {
+    if (schema.format) {
+      switch (schema.format) {
         case "email":
           if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(stringValue)) {
             return {
@@ -384,7 +412,6 @@ function validateField(
 
   // Number validation
   if (schema.type === "number" || schema.type === "integer") {
-    const numberSchema = schema;
     const numberValue = Number(value);
 
     if (Number.isNaN(numberValue)) {
@@ -392,22 +419,22 @@ function validateField(
     }
 
     if (
-      numberSchema.minimum !== undefined &&
-      numberValue < numberSchema.minimum
+      schema.minimum !== undefined &&
+      numberValue < schema.minimum
     ) {
       return {
         valid: false,
-        error: `Minimum value is ${numberSchema.minimum}`,
+        error: `Minimum value is ${schema.minimum}`,
       };
     }
 
     if (
-      numberSchema.maximum !== undefined &&
-      numberValue > numberSchema.maximum
+      schema.maximum !== undefined &&
+      numberValue > schema.maximum
     ) {
       return {
         valid: false,
-        error: `Maximum value is ${numberSchema.maximum}`,
+        error: `Maximum value is ${schema.maximum}`,
       };
     }
 
@@ -447,13 +474,19 @@ export const ElicitationUI: React.FC<ElicitationUIProps> = ({
   className,
 }) => {
   const singleEntry = isSingleEntryMode(request);
+  
+  // Type guard and default values
+  const schemaObj = isJSONSchemaObject(request.requestedSchema) 
+    ? request.requestedSchema 
+    : { properties: {}, required: [] };
+  
   const fields = useMemo(
-    () => Object.entries(request.requestedSchema.properties),
-    [request.requestedSchema.properties],
+    () => Object.entries(schemaObj.properties),
+    [schemaObj.properties],
   );
   const requiredFields = useMemo(
-    () => request.requestedSchema.required ?? [],
-    [request.requestedSchema.required],
+    () => schemaObj.required ?? [],
+    [schemaObj.required],
   );
   const [formData, setFormData] = useState<Record<string, unknown>>(() => {
     const initial: Record<string, unknown> = {};
@@ -509,7 +542,7 @@ export const ElicitationUI: React.FC<ElicitationUIProps> = ({
     return validateField(value, fieldSchema, isRequired).valid;
   });
 
-  if (singleEntry) {
+  if (singleEntry && fields.length > 0) {
     const [fieldName, fieldSchema] = fields[0];
     const validationError = touchedFields.has(fieldName)
       ? getValidationError(

@@ -29,7 +29,7 @@ export default function Home() {
           currentPage: currentPageContextHelper,
         }}
       >
-      <TamboMcpProvider mcpServers={mcpServers}>
+      <TamboMcpProvider>
         <div className="h-screen">
           <MessageThreadFull contextKey="tambo-template" />
         </div>
