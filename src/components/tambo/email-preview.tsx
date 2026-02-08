@@ -20,8 +20,9 @@ export function EmailPreview({ to, subject, body }: EmailPreviewProps) {
     setAttachments((prev) => prev.filter((file) => file !== fileToRemove));
   };
 
-  // Sanitize HTML and convert newlines to <br /> tags
-  const sanitizedBody = DOMPurify.sanitize(body.replace(/\n/g, "<br />"));
+
+  const safeBody = body ?? "";
+  const sanitizedBody = DOMPurify.sanitize(safeBody.replace(/\n/g, "<br />"));
 
   return (
     <div className="border border-border rounded-lg p-4 space-y-3 bg-card">
@@ -31,10 +32,10 @@ export function EmailPreview({ to, subject, body }: EmailPreviewProps) {
 
       <div>
         <p className="text-sm">
-          <strong>To:</strong> {to}
+          <strong>To:</strong> {to || "(No recipient)"}
         </p>
         <p className="text-sm">
-          <strong>Subject:</strong> {subject}
+          <strong>Subject:</strong> {subject || "(No subject)"}
         </p>
       </div>
 

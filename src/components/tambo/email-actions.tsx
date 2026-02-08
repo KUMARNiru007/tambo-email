@@ -29,10 +29,21 @@ export const EmailActions = React.forwardRef<HTMLDivElement, EmailActionsProps>(
     const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
     const handleSend = async () => {
+      // Validate inputs before sending
+      if (!to || !subject || !body) {
+        setStatus("error");
+        setErrorMessage("Missing required fields (to, subject, or body)");
+        return;
+      }
+
       setStatus("sending");
       setErrorMessage(null);
       try {
-        await sendEmailAndPersist({ to, subject, body });
+        await sendEmailAndPersist({ 
+          to: to || "", 
+          subject: subject || "", 
+          body: body || "" 
+        });
         setStatus("sent");
       } catch (err) {
         setStatus("error");
@@ -41,10 +52,21 @@ export const EmailActions = React.forwardRef<HTMLDivElement, EmailActionsProps>(
     };
 
     const handleSaveDraft = async () => {
+      // Validate inputs before saving
+      if (!to || !subject || !body) {
+        setStatus("error");
+        setErrorMessage("Missing required fields (to, subject, or body)");
+        return;
+      }
+
       setStatus("saving");
       setErrorMessage(null);
       try {
-        await saveEmailDraft({ to, subject, body });
+        await saveEmailDraft({ 
+          to: to || "", 
+          subject: subject || "", 
+          body: body || "" 
+        });
         setStatus("saved");
       } catch (err) {
         setStatus("error");
