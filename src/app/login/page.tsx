@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="min-h-screen p-8 flex flex-col items-center justify-center font-[family-name:var(--font-geist-sans)]">
       <main className="max-w-2xl w-full space-y-8">
         <div className="flex flex-col items-center">
-          <a href="https://tambo.co" target="_blank" rel="noopener noreferrer">
+          <a href="https://tambo-email.vercel.app/" target="_blank" rel="noopener noreferrer">
             <Image
               src="/Octo-Icon.svg"
               alt="Tambo AI Logo"

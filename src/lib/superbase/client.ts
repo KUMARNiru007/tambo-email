@@ -1,9 +1,29 @@
 import { createBrowserClient } from "@supabase/ssr";
 
+function getURL() {
+  let url =
+    process?.env?.NEXT_PUBLIC_SITE_URL ?? 
+    process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel
+    'http://localhost:3000/';
+  
+ 
+  url = url.includes('http') ? url : `https://${url}`;
+
+  url = url.charAt(url.length - 1) === '/' ? url : `${url}/`;
+  
+  return url;
+}
+
 export const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
+    auth: {
+      flowType: 'pkce',
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true,
+    },
     cookies: {
       getAll() {
         const cookies: { name: string; value: string }[] = [];
@@ -28,3 +48,5 @@ export const supabase = createBrowserClient(
     },
   }
 );
+
+export { getURL };
