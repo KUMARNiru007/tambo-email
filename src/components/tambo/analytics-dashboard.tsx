@@ -181,7 +181,7 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:gap-5">
           <StatCard
             icon={Send}
             label="Total Sent"
@@ -213,15 +213,15 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           {/* Trend Chart - Emails Sent Per Day */}
           <div className="rounded-xl border border-border bg-background p-5">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold md:text-lg">
               <Mail className="h-5 w-5 text-primary" />
               {sentPerDayChart?.title ?? "Emails sent"}
             </h3>
-            <div className="h-64">
-              <RechartsCore.ResponsiveContainer width="100%" height="100%">
+            <div className="h-56 sm:h-64 md:h-72 lg:h-80">
+          <RechartsCore.ResponsiveContainer width="100%" height="100%">
                 <RechartsCore.AreaChart data={barChartData}>
                   <defs>
                     <linearGradient id="sentTrendFill" x1="0" y1="0" x2="0" y2="1">
@@ -276,7 +276,7 @@ export const AnalyticsDashboard = React.forwardRef<HTMLDivElement, AnalyticsDash
                 <PieChartIcon className="h-5 w-5 text-primary" />
                 {categoryChart.title ?? "Emails by category"}
               </h3>
-              <div className="h-64">
+              <div className="h-56 sm:h-64 md:h-72">
                 <RechartsCore.ResponsiveContainer width="100%" height="100%">
                   <RechartsCore.PieChart>
                     <RechartsCore.Pie

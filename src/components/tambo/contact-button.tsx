@@ -30,7 +30,7 @@ export const ContactButton = React.forwardRef<
       title="Contacts"
       {...props}
     >
-      <Users className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+      <Users className="h-4 w-4 text-blue-400 hover:text-blue-500  transition-colors" />
       <span
         className={cn(
           "text-sm font-medium whitespace-nowrap absolute left-8 pb-0.5",

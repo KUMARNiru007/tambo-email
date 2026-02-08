@@ -30,7 +30,7 @@ export const DraftButton = React.forwardRef<
       title="Draft Emails"
       {...props}
     >
-      <FileEdit className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+      <FileEdit className="h-4 w-4 text-orange-600 hover:text-orange-700 text-muted-foreground hover:text-foreground transition-colors" />
       <span
         className={cn(
           "text-sm font-medium whitespace-nowrap absolute left-8 pb-0.5",

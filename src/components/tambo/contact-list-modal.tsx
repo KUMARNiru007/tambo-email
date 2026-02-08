@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { X, Plus, Mail, Users } from "lucide-react";
+import { X, Plus, Mail, Users, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { saveContact } from "@/services/save-contact";
 import { listContacts } from "@/services/list-contacts";
@@ -153,16 +153,25 @@ export const ContactListModal = React.forwardRef<
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-muted-foreground">Loading contacts...</div>
-            </div>
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Loading contacts...</p>
+    </div>
+  </div>
           ) : contacts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Mail className="h-12 w-12 text-muted-foreground/30 mb-3" />
-              <div className="text-muted-foreground mb-2">No contacts yet</div>
-              <p className="text-sm text-muted-foreground">
-                Add a new contact above to get started
-              </p>
-            </div>
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+    <div className="rounded-full bg-primary/10 p-4 mb-4">
+      <Users className="h-8 w-8 text-primary" />
+    </div>
+    <h3 className="text-lg font-semibold mb-2">No contacts yet</h3>
+    <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+      Start building your contact list by adding people you email frequently
+    </p>
+    <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg max-w-md">
+      Tip: You can also ask the AI to add contacts by saying 
+      "Add John Doe, john@example.com"
+    </div>
+  </div>
           ) : (
             <div className="space-y-2">
               {contacts.map((contact) => (

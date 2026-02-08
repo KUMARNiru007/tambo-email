@@ -1,0 +1,267 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import { useTamboComponentState } from "@tambo-ai/react";
+import * as React from "react";
+import { z } from "zod";
+import { Check, FileText, ChevronDown, ChevronUp } from "lucide-react";
+
+function extractVariables(content: string): string[] {
+  const variableRegex = /\{\{([^}]+)\}\}/g;
+  const variables: string[] = [];
+  let match;
+  
+  while ((match = variableRegex.exec(content)) !== null) {
+    const variable = match[1].trim();
+    if (!variables.includes(variable)) {
+      variables.push(variable);
+    }
+  }
+  
+  return variables;
+}
+
+/**
+ * Render template content with highlighted variables
+ */
+function TemplateContentPreview({ content }: { content: string }) {
+  const parts = content.split(/(\{\{[^}]+\}\})/g);
+  
+  return (
+    <div className="text-sm leading-relaxed">
+      {parts.map((part, index) => {
+        const isVariable = part.match(/\{\{([^}]+)\}\}/);
+        if (isVariable) {
+          return (
+            <span
+              key={index}
+              className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded bg-primary/10 text-primary font-medium border border-primary/20 text-xs"
+              title={`Variable: ${isVariable[1].trim()}`}
+            >
+              {isVariable[1].trim()}
+            </span>
+          );
+        }
+        return <span key={index} className="text-foreground">{part}</span>;
+      })}
+    </div>
+  );
+}
+
+// Define option type for template cards
+export type TemplateCardItem = {
+  id: string;
+  label: string; // Template name
+  value: string; // Template ID or name for selection
+  description?: string; // Short description
+  content: string; // Full template content with variables
+};
+
+// Define the component state type
+export type TemplateCardState = {
+  selectedValues: string[];
+  expandedCards: string[]; // Track which cards are expanded
+};
+
+// Define the component props schema with Zod
+export const templateCardSchema = z.object({
+  title: z.string().describe("Title displayed above the template cards"),
+  options: z
+    .array(
+      z.object({
+        id: z.string().describe("Unique identifier for this template"),
+        label: z.string().describe("Template name/title"),
+        value: z.string().describe("Value for selection (usually the template name)"),
+        description: z
+          .string()
+          .optional()
+          .describe("Optional brief description of the template"),
+        content: z
+          .string()
+          .describe("Full template content with {{variables}}"),
+      }),
+    )
+    .describe("Array of email templates to display"),
+});
+
+// Define the props type based on the Zod schema
+export type TemplateCardProps = z.infer<typeof templateCardSchema> &
+  React.HTMLAttributes<HTMLDivElement>;
+
+/**
+ * TemplateCard Component
+ *
+ * A specialized component for displaying email templates with variable highlighting,
+ * expandable previews, and selection capabilities.
+ */
+export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
+  ({ title, options, className, ...props }, ref) => {
+    // Initialize Tambo component state
+    const [state, setState] = useTamboComponentState<TemplateCardState>(
+      `template-card`,
+      { selectedValues: [], expandedCards: [] },
+    );
+
+    // Handle template selection
+    const handleToggleCard = (value: string) => {
+      if (!state) return;
+
+      const selectedValues = [...state.selectedValues];
+      const index = selectedValues.indexOf(value);
+
+      if (index > -1) {
+        selectedValues.splice(index, 1);
+      } else {
+        selectedValues.push(value);
+      }
+
+      setState({ ...state, selectedValues });
+    };
+
+    // Handle card expansion
+    const handleToggleExpand = (id: string) => {
+      if (!state) return;
+
+      const expandedCards = [...state.expandedCards];
+      const index = expandedCards.indexOf(id);
+
+      if (index > -1) {
+        expandedCards.splice(index, 1);
+      } else {
+        expandedCards.push(id);
+      }
+
+      setState({ ...state, expandedCards });
+    };
+
+    if (!state) return null;
+
+    return (
+      <div ref={ref} className={cn("w-full space-y-3", className)} {...props}>
+        {title && (
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-violet-600" />
+            <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+            {options && options.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                ({options.length} template{options.length !== 1 ? 's' : ''})
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {options?.map((template) => {
+            const isExpanded = state.expandedCards.includes(template.id);
+            const isSelected = state.selectedValues.includes(template.value);
+            const variables = extractVariables(template.content);
+
+            return (
+              <div
+                key={template.id}
+                className={cn(
+                  "border rounded-lg bg-card transition-all",
+                  isSelected && "border-primary/40 bg-primary/5",
+                  !isSelected && "border-border hover:border-primary/30"
+                )}
+              >
+                {/* Header */}
+                <div className="p-3 flex items-start gap-3">
+                  {/* Selection checkbox */}
+                  <div
+                    className="flex-shrink-0 mt-0.5 cursor-pointer"
+                    onClick={() => handleToggleCard(template.value)}
+                  >
+                    <div
+                      className={cn(
+                        "w-4 h-4 border rounded-sm flex items-center justify-center transition-colors",
+                        isSelected
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-border hover:border-primary/50"
+                      )}
+                    >
+                      {isSelected && <Check className="h-3 w-3" />}
+                    </div>
+                  </div>
+
+                  {/* Template info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className={cn(
+                            "font-semibold text-sm",
+                            isSelected ? "text-primary" : "text-foreground"
+                          )}
+                        >
+                          {template.label}
+                        </h3>
+                        {template.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {template.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Expand/collapse button */}
+                      <button
+                        onClick={() => handleToggleExpand(template.id)}
+                        className="p-1 rounded hover:bg-muted transition-colors flex-shrink-0"
+                        aria-label={isExpanded ? "Collapse" : "Expand"}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Variables badges */}
+                    {variables.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <span className="text-xs text-muted-foreground">
+                          Variables:
+                        </span>
+                        {variables.map((variable) => (
+                          <span
+                            key={variable}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                          >
+                            {variable}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Expandable content preview */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 border-t border-border pt-3">
+                    <div className="bg-muted/30 rounded-lg p-3 max-h-48 overflow-y-auto">
+                      <TemplateContentPreview content={template.content} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Helper text */}
+        {options && options.length > 0 && (
+          <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg mt-4">
+             Click the expand icon to preview template content. Variables like{" "}
+            <code className="bg-background px-1 py-0.5 rounded">{"name"}</code>{" "}
+            will be highlighted.
+          </div>
+        )}
+      </div>
+    );
+  },
+);
+
+TemplateCard.displayName = "TemplateCard";
+
+export default TemplateCard;

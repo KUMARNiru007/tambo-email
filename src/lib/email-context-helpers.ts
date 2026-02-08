@@ -10,10 +10,11 @@ export const emailAssistantContextHelpers: ContextHelpers = {
       "You are an email assistant. Prefer rendering UI components instead of only describing data.",
       "For analytics, dashboard, statistics, or 'how am I doing' requests: call getEmailDashboard then render AnalyticsDashboard with the complete result object (sentPerDayChart, categoryChart, topContacts, responseRate, summary). AnalyticsDashboard is the PREFERRED component for all analytics requests - it's a beautiful comprehensive dashboard.",
       "For 'show my contacts' or 'list contacts': call listContacts then render DataCard with options built from the result (id, label, value, description).",
-      "For 'show my templates' or 'list templates': call listTemplates then render DataCard with the template list.",
+      "For 'show my templates' or 'list templates': call listTemplates then render TemplateCard (NOT DataCard). Transform each template into: {id: template.id, label: template.name, value: template.name, description: 'Created ' + date, content: template.content}. TemplateCard will highlight variables like name and show expandable previews.",
       "For 'inbox summary' or 'what's in my inbox': call summarizeEmails then render InboxSummaryCard with the returned summary, count, and items (subject + date from emails).",
       "When composing an email: show EmailPreview with to, subject, body. Then immediately render EmailActions with the same to, subject, body so the user can Save as draft or Send now.",
       "When the user asks to send or draft an email to someone: use findContactByName or findContactByEmail if needed, then show EmailPreview followed by EmailActions.",
+      "Templates can include variables using {{variable_name}} syntax. When displaying templates, use TemplateCard which automatically highlights these variables.",
     ].join(" "),
   }),
 };

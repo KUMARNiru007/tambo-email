@@ -33,6 +33,7 @@ import { getEmailDashboard } from "@/services/get-email-dashboard";
 import type { TamboComponent } from "@tambo-ai/react";
 import { TamboTool } from "@tambo-ai/react";
 import { z } from "zod";
+import TemplateCard, { templateCardSchema } from "@/components/ui/template-card";
 
 /**
  * tools
@@ -214,6 +215,13 @@ export const components: TamboComponent[] = [
       "A component that displays options as clickable cards with links and summaries with the ability to select multiple items. Great for showing email lists or contact options.",
     component: DataCard,
     propsSchema: dataCardSchema,
+  },
+    {
+    name: "TemplateCard",
+    description:
+      "PREFERRED for displaying email templates. Shows templates with proper variable highlighting ({{variable}} syntax), expandable previews, and selection capabilities. Use when displaying results from listTemplates tool. Each template option requires: id, label (template name), value (for selection), and content (full template text with variables).",
+    component: TemplateCard,
+    propsSchema: templateCardSchema,
   },
   {
     name: "EmailPreview",
