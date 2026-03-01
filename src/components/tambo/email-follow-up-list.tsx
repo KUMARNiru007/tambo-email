@@ -13,10 +13,6 @@ import {
 import * as React from "react";
 import { z } from "zod";
 
-/* ------------------------------------------------------------------ */
-/*  Schema                                                             */
-/* ------------------------------------------------------------------ */
-
 export const emailFollowUpListSchema = z.object({
   title: z
     .string()
@@ -52,10 +48,6 @@ export type EmailFollowUpListState = {
   selectedIds: string[];
 };
 
-/* ------------------------------------------------------------------ */
-/*  Urgency helpers                                                    */
-/* ------------------------------------------------------------------ */
-
 const urgencyConfig = {
   high: {
     bg: "bg-red-500/10 dark:bg-red-500/20",
@@ -86,21 +78,13 @@ const urgencyConfig = {
   },
 };
 
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
-
-/**
- * EmailFollowUpList
- *
- * Displays a list of emails that need follow-up with urgency indicators,
- * reasons, and multi-select checkboxes.  Selected email IDs are persisted
- * in Tambo component state so the AI can read them.
- */
 export const EmailFollowUpList = React.forwardRef<
   HTMLDivElement,
   EmailFollowUpListProps
->(({ title, emails, className, ...props }, ref) => {
+>(({ title, emails: rawEmails, className, ...props }, ref) => {
+  const emails = Array.isArray(rawEmails) ? rawEmails : [];
+  const safeTitle = title ?? "Emails needing follow-up";
+
   const [state, setState] = useTamboComponentState<EmailFollowUpListState>(
     "email-follow-up-list",
     { selectedIds: [] }
@@ -125,6 +109,18 @@ export const EmailFollowUpList = React.forwardRef<
 
   const selectedCount = state?.selectedIds.length ?? 0;
 
+  if (emails.length === 0) {
+    return (
+      <div
+        ref={ref}
+        className={cn("w-full rounded-xl border border-border bg-card p-6 text-center text-muted-foreground", className)}
+        {...props}
+      >
+        Loading follow-up emails...
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}
@@ -134,7 +130,6 @@ export const EmailFollowUpList = React.forwardRef<
       )}
       {...props}
     >
-      {/* ---- Header ---- */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="rounded-lg bg-primary/10 p-2">
@@ -142,7 +137,7 @@ export const EmailFollowUpList = React.forwardRef<
           </div>
           <div>
             <h3 className="font-semibold text-base text-foreground leading-tight">
-              {title}
+              {safeTitle}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {emails.length} email{emails.length !== 1 && "s"} found
@@ -169,10 +164,9 @@ export const EmailFollowUpList = React.forwardRef<
         </button>
       </div>
 
-      {/* ---- Email list ---- */}
       <ul className="divide-y divide-border">
         {emails.map((email) => {
-          const cfg = urgencyConfig[email.urgency];
+          const cfg = urgencyConfig[email.urgency] ?? urgencyConfig.medium;
           const UrgIcon = cfg.icon;
           const selected = state?.selectedIds.includes(email.id) ?? false;
 
@@ -185,7 +179,6 @@ export const EmailFollowUpList = React.forwardRef<
                 selected ? cfg.bg : "hover:bg-muted/40"
               )}
             >
-              {/* Checkbox */}
               <div className="shrink-0 mt-1">
                 <div
                   className={cn(
@@ -199,7 +192,6 @@ export const EmailFollowUpList = React.forwardRef<
                 </div>
               </div>
 
-              {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium text-sm text-foreground truncate">
@@ -228,7 +220,6 @@ export const EmailFollowUpList = React.forwardRef<
                   {email.snippet}
                 </p>
 
-                {/* Reason pill */}
                 <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 rounded-md px-2.5 py-1">
                   <Mail className="h-3 w-3" />
                   <span>{email.reason}</span>
@@ -239,11 +230,10 @@ export const EmailFollowUpList = React.forwardRef<
         })}
       </ul>
 
-      {/* ---- Footer hint ---- */}
       {selectedCount > 0 && (
         <div className="px-5 py-3 border-t border-border bg-primary/5">
           <p className="text-xs text-primary font-medium text-center">
-            💡 Say <span className="font-semibold">&quot;Draft replies for these&quot;</span> to
+             Say <span className="font-semibold">&quot;Draft replies for these&quot;</span> to
             generate responses for the {selectedCount} selected email
             {selectedCount !== 1 && "s"}
           </p>

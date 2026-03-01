@@ -1,11 +1,9 @@
 import { Tooltip } from "@/components/tambo/suggestions-tooltip";
+import { cn } from "@/lib/utils";
 import { useTamboThreadInput, useTamboVoice } from "@tambo-ai/react";
 import { Loader2Icon, Mic, Square } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-/**
- * Button for dictating speech into the message input.
- */
 export default function DictationButton() {
   const {
     startRecording,
@@ -38,30 +36,39 @@ export default function DictationButton() {
   if (isTranscribing) {
     return (
       <div className="p-2 rounded-md">
-        <Loader2Icon className="h-5 w-5 animate-spin" />
+        <Loader2Icon className="h-5 w-5 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <div className="flex flex-row items-center gap-2">
-      <span className="text-sm text-red-500">{transcriptionError}</span>
+      {transcriptionError && (
+        <span className="text-sm text-red-500">{transcriptionError}</span>
+      )}
       {isRecording ? (
-        <Tooltip content="Stop">
+        <Tooltip content="Stop recording">
           <button
             type="button"
             onClick={handleStopRecording}
-            className="p-2 rounded-md cursor-pointer hover:bg-gray-100"
+            className={cn(
+              "relative p-2 rounded-lg cursor-pointer transition-colors",
+              "bg-red-500/15 hover:bg-red-500/25 dark:bg-red-500/20 dark:hover:bg-red-500/30"
+            )}
           >
-            <Square className="h-4 w-4 text-red-500 fill-current animate-pulse" />
+            <span className="absolute inset-0 rounded-lg animate-ping bg-red-500/20" />
+            <Square className="relative h-4 w-4 text-red-500 fill-current" />
           </button>
         </Tooltip>
       ) : (
-        <Tooltip content="Dictate">
+        <Tooltip content="Voice input">
           <button
             type="button"
             onClick={handleStartRecording}
-            className="p-2 rounded-md cursor-pointer hover:bg-gray-100"
+            className={cn(
+              "p-2 rounded-lg cursor-pointer transition-colors",
+              "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
           >
             <Mic className="h-5 w-5" />
           </button>

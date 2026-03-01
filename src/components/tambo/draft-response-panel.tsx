@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { saveEmailDraft } from "@/services/save-email";
 import { sendEmailAndPersist } from "@/services/send-email-and-persist";
 import {
+  Bell,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -17,10 +18,6 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { z } from "zod";
-
-/* ------------------------------------------------------------------ */
-/*  Schema                                                             */
-/* ------------------------------------------------------------------ */
 
 export const draftResponsePanelSchema = z.object({
   drafts: z
@@ -67,10 +64,6 @@ const toneBadge: Record<string, { label: string; cls: string }> = {
   },
 };
 
-/* ------------------------------------------------------------------ */
-/*  Single draft card                                                  */
-/* ------------------------------------------------------------------ */
-
 function DraftCard({
   draft,
   index,
@@ -83,6 +76,7 @@ function DraftCard({
     "idle" | "sending" | "saving" | "sent" | "saved" | "error"
   >("idle");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [confirmationMsg, setConfirmationMsg] = React.useState<string | null>(null);
 
   const busy = status === "sending" || status === "saving";
   const done = status === "sent" || status === "saved";
@@ -97,6 +91,9 @@ function DraftCard({
         body: draft.body,
       });
       setStatus("sent");
+      setConfirmationMsg(
+        `Sent to ${draft.to}! I've added a follow-up reminder for ${draft.from} in 3 days.`
+      );
     } catch (err) {
       setStatus("error");
       setErrorMsg(err instanceof Error ? err.message : "Send failed");
@@ -130,7 +127,6 @@ function DraftCard({
           : "border-border bg-card"
       )}
     >
-      {/* ---- Header ---- */}
       <button
         type="button"
         onClick={() => setExpanded((p) => !p)}
@@ -168,10 +164,8 @@ function DraftCard({
         )}
       </button>
 
-      {/* ---- Body ---- */}
       {expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-border">
-          {/* Subject */}
           <div className="pt-3">
             <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               Subject
@@ -179,7 +173,6 @@ function DraftCard({
             <p className="text-sm text-foreground mt-0.5">{draft.subject}</p>
           </div>
 
-          {/* Draft body */}
           <div>
             <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               Draft reply
@@ -189,12 +182,19 @@ function DraftCard({
             </div>
           </div>
 
-          {/* Error */}
           {errorMsg && (
             <p className="text-xs text-red-500">{errorMsg}</p>
           )}
 
-          {/* Actions */}
+          {confirmationMsg && (
+            <div className="flex items-start gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3 py-2.5">
+              <Bell className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                {confirmationMsg}
+              </p>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <button
               type="button"
@@ -247,20 +247,24 @@ function DraftCard({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main component                                                     */
-/* ------------------------------------------------------------------ */
-
-/**
- * DraftResponsePanel
- *
- * Renders AI-generated draft replies for multiple selected emails.
- * Each draft can be individually sent or saved as a draft.
- */
 export const DraftResponsePanel = React.forwardRef<
   HTMLDivElement,
   DraftResponsePanelProps
->(({ drafts, className, ...props }, ref) => {
+>(({ drafts: rawDrafts, className, ...props }, ref) => {
+  const drafts = Array.isArray(rawDrafts) ? rawDrafts : [];
+
+  if (drafts.length === 0) {
+    return (
+      <div
+        ref={ref}
+        className={cn("w-full rounded-xl border border-border bg-card p-6 text-center text-muted-foreground", className)}
+        {...props}
+      >
+        Preparing drafts...
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}
@@ -270,7 +274,6 @@ export const DraftResponsePanel = React.forwardRef<
       )}
       {...props}
     >
-      {/* Header */}
       <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
         <div className="rounded-lg bg-primary/10 p-2">
           <Mail className="h-4.5 w-4.5 text-primary" />
@@ -285,17 +288,15 @@ export const DraftResponsePanel = React.forwardRef<
         </div>
       </div>
 
-      {/* Draft list */}
       <div className="p-4 space-y-3">
         {drafts.map((draft, i) => (
           <DraftCard key={draft.id} draft={draft} index={i} />
         ))}
       </div>
 
-      {/* Footer tip */}
       <div className="px-5 py-3 border-t border-border bg-muted/30">
         <p className="text-xs text-muted-foreground text-center">
-          💡 Say <span className="font-medium">&quot;Make it more formal&quot;</span> or{" "}
+          Say <span className="font-medium">&quot;Make it more formal&quot;</span> or{" "}
           <span className="font-medium">&quot;Shorten the reply to #1&quot;</span> to refine
         </p>
       </div>

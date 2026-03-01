@@ -91,7 +91,11 @@ export const tools: TamboTool[] = [
   {
     name: "listEmails",
     description: "List emails. Can filter by status (draft, sent, received) or return all emails.",
-    tool: listEmails,
+    tool: async (...args: unknown[]) => {
+      const first = args[0] as Record<string, unknown> | undefined;
+      const status = first?.status as "draft" | "sent" | "received" | undefined;
+      return await listEmails(status);
+    },
     toolSchema: z.function().args(
       z.object({
         status: z.enum(["draft", "sent", "received"]).optional().describe("Filter by email status"),
