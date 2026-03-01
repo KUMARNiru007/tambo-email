@@ -13,6 +13,14 @@ import { DataCard, dataCardSchema } from "@/components/ui/card-data";
 import { EmailActions, emailActionsSchema } from "@/components/tambo/email-actions";
 import { EmailPreview } from "@/components/tambo/email-preview";
 import {
+  EmailFollowUpList,
+  emailFollowUpListSchema,
+} from "@/components/tambo/email-follow-up-list";
+import {
+  DraftResponsePanel,
+  draftResponsePanelSchema,
+} from "@/components/tambo/draft-response-panel";
+import {
   InboxSummaryCard,
   inboxSummaryCardSchema,
 } from "@/components/tambo/inbox-summary-card";
@@ -247,5 +255,19 @@ export const components: TamboComponent[] = [
       "Display an inbox summary with title, summary text, count, and optional list of email subjects/dates. Use after calling summarizeEmails: pass summary, count, and items (array of { subject, date }) from the tool result.",
     component: InboxSummaryCard,
     propsSchema: inboxSummaryCardSchema,
+  },
+  {
+    name: "EmailFollowUpList",
+    description:
+      "PREFERRED when showing emails that need follow-up or urgent replies. Displays an interactive list of emails with urgency badges (high/medium/low), follow-up reasons, and multi-select checkboxes. Users can select emails and then ask AI to draft replies for them. Use after calling listEmails with status='received' and analyzing which ones need follow-up. Each email needs: id, from, subject, snippet (preview text), reason (why it needs follow-up), urgency ('high'|'medium'|'low'), and optional receivedAt.",
+    component: EmailFollowUpList,
+    propsSchema: emailFollowUpListSchema,
+  },
+  {
+    name: "DraftResponsePanel",
+    description:
+      "Display AI-generated draft replies for multiple emails at once. Each draft has a subject, body, tone badge, and Send/Save buttons. Use after the user selects emails from EmailFollowUpList and asks to draft replies. Each draft needs: id (matching the email id), to (recipient email), originalSubject, from (original sender), subject (reply subject), body (draft reply text), and optional tone ('professional'|'friendly'|'concise'|'formal').",
+    component: DraftResponsePanel,
+    propsSchema: draftResponsePanelSchema,
   },
 ];

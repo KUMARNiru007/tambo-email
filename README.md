@@ -1,6 +1,6 @@
 # Next.js + Tambo + Resend + Superbase -- AI Email Assistant
 
-**A Next.js Email Agent that uses Tambo to draft, preview, and send emails via Resend using natural language.**
+**A Next.js Email Assistant  that uses Tambo to draft, preview, and send emails via Resend using natural language.**
 
 This project demonstrates how to use **Tambo** to generate UI and execute real-world actions by drafting and sending emails through **Resend**. It includes full authentication and database management with **Superbase**, contact management, and email tracking.
 
