@@ -259,14 +259,14 @@ export const components: TamboComponent[] = [
   {
     name: "EmailFollowUpList",
     description:
-      "PREFERRED when showing emails that need follow-up or urgent replies. Displays an interactive list of emails with urgency badges (high/medium/low), follow-up reasons, and multi-select checkboxes. Users can select emails and then ask AI to draft replies for them. Use after calling listEmails with status='received' and analyzing which ones need follow-up. Each email needs: id, from, subject, snippet (preview text), reason (why it needs follow-up), urgency ('high'|'medium'|'low'), and optional receivedAt.",
+      "ALWAYS USE THIS for follow-up email requests. When the user asks 'what emails need follow-up' or 'which emails need replies', you MUST render this component instead of plain text. Displays an interactive list of emails with urgency badges (high/medium/low), follow-up reasons, and multi-select checkboxes. Users can select emails and then ask AI to draft replies. Call listEmails with status='received' first, then build props: title (string), emails (array of {id, from, subject, snippet, reason, urgency, receivedAt}).",
     component: EmailFollowUpList,
     propsSchema: emailFollowUpListSchema,
   },
   {
     name: "DraftResponsePanel",
     description:
-      "Display AI-generated draft replies for multiple emails at once. Each draft has a subject, body, tone badge, and Send/Save buttons. Use after the user selects emails from EmailFollowUpList and asks to draft replies. Each draft needs: id (matching the email id), to (recipient email), originalSubject, from (original sender), subject (reply subject), body (draft reply text), and optional tone ('professional'|'friendly'|'concise'|'formal').",
+      "ALWAYS USE THIS when drafting replies to multiple emails. When the user says 'draft replies' or 'draft responses for selected emails', you MUST render this component. Shows AI-generated draft replies with Send/Save buttons and tone badges. Build props: drafts (array of {id, to, originalSubject, from, subject, body, tone}). The tone can be 'professional', 'friendly', 'concise', or 'formal'.",
     component: DraftResponsePanel,
     propsSchema: draftResponsePanelSchema,
   },
