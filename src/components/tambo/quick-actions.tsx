@@ -193,7 +193,7 @@ export function QuickActionBar({
 }) {
   const { setValue, submit, isPending } = useTamboThreadInput();
   const [busy, setBusy] = React.useState(false);
-  const barActions = QUICK_ACTIONS.slice(0, 4);
+  const barActions = QUICK_ACTIONS;
 
   return (
     <div className={cn("flex items-center gap-1.5", className)}>

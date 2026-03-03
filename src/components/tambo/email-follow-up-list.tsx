@@ -256,8 +256,9 @@ export const EmailFollowUpList = React.forwardRef<
                   `Draft responses for these selected emails:\n${summary}\nUse DraftResponsePanel.`,
                 );
                 await new Promise((r) => setTimeout(r, 20));
-                await submit({ streamResponse: true });
+                const p = submit({ streamResponse: true });
                 setValue("");
+                await p;
               } catch (error) {
                 console.error("Failed to draft replies", error);
               } finally {
