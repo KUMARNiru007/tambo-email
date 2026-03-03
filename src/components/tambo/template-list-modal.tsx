@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { X, Plus, FileText, Copy, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { X, Plus, FileText, Copy, Check, ChevronDown, ChevronUp, Loader2, PenLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { saveTemplate } from "@/services/save-template";
 import { listTemplates } from "@/services/list-templates";
+import { useTamboThreadInput } from "@tambo-ai/react";
 
 interface Template {
   id: string;
@@ -19,9 +20,6 @@ interface TemplateListModalProps {
   onSelectTemplate?: (template: Template) => void;
 }
 
-/**
- * Extract variables from template content (e.g., name, topic)
- */
 function extractVariables(content: string): string[] {
   const variableRegex = /\{\{([^}]+)\}\}/g;
   const variables: string[] = [];
@@ -34,6 +32,19 @@ function extractVariables(content: string): string[] {
   }
   
   return variables;
+}
+
+function fillTemplate(content: string, values: Record<string, string>): string {
+  return content.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+    const trimmed = key.trim();
+    return values[trimmed] || `{{${trimmed}}}`;
+  });
+}
+
+function formatLabel(variable: string): string {
+  return variable
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
@@ -68,25 +79,51 @@ function TemplatePreview({ content }: { content: string }) {
 function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (template: Template) => void }) {
   const [expanded, setExpanded] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [showForm, setShowForm] = React.useState(false);
+  const [isDrafting, setIsDrafting] = React.useState(false);
+  const { setValue, submit, isPending } = useTamboThreadInput();
   const variables = extractVariables(template.content);
+  const [formValues, setFormValues] = React.useState<Record<string, string>>(() =>
+    Object.fromEntries(variables.map((v) => [v, ""])),
+  );
+  const allFilled = variables.every((v) => formValues[v]?.trim());
   
   const handleCopy = async () => {
     await navigator.clipboard.writeText(template.content);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const handleDraft = async (values: Record<string, string>) => {
+    if (isPending || isDrafting) return;
+    setIsDrafting(true);
+    try {
+      const filled = fillTemplate(template.content, values);
+      const emailField = values["email"] || values["Email"] || values["recipient_email"] || "not specified";
+      setValue(
+        `Draft an email using this template with the provided details:\n- Template: ${template.name}\n  Content: ${filled}\nRecipient email: ${emailField}\nShow the EmailPreview component.`,
+      );
+      await new Promise((r) => setTimeout(r, 20));
+      const p = submit({ streamResponse: true });
+      setValue("");
+      await p;
+      setShowForm(false);
+    } catch (error) {
+      console.error("Failed to draft from template", error);
+    } finally {
+      setIsDrafting(false);
+    }
+  };
   
   return (
     <div className="border border-border rounded-lg bg-card hover:border-primary/30 transition-all">
-      {/* Header */}
       <div className="p-4 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-foreground flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+            <FileText className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate">{template.name}</span>
           </h4>
           
-          {/* Variables badge */}
           {variables.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
               <span className="text-xs text-muted-foreground">Variables:</span>
@@ -102,8 +139,7 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
           )}
         </div>
         
-        {/* Action buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleCopy}
             className="p-2 rounded-md hover:bg-muted transition-colors"
@@ -130,7 +166,6 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
         </div>
       </div>
       
-      {/* Expandable content preview */}
       {expanded && (
         <div className="px-4 pb-4 space-y-3">
           <div className="border-t border-border pt-3">
@@ -139,13 +174,83 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
               <TemplatePreview content={template.content} />
             </div>
           </div>
-          
-          {onSelect && (
+
+          {showForm && variables.length > 0 ? (
+            <div className="border border-primary/30 rounded-lg bg-card overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <PenLine className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Fill in details</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="p-1 rounded hover:bg-muted transition-colors"
+                >
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {variables.map((variable) => (
+                  <div key={variable}>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      {formatLabel(variable)}
+                    </label>
+                    <input
+                      type={variable.toLowerCase().includes("email") ? "email" : "text"}
+                      placeholder={`Enter ${formatLabel(variable).toLowerCase()}`}
+                      value={formValues[variable] || ""}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({ ...prev, [variable]: e.target.value }))
+                      }
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-muted/20">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!allFilled || isDrafting || isPending}
+                  onClick={() => handleDraft(formValues)}
+                  className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isDrafting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <PenLine className="h-3.5 w-3.5" />
+                  )}
+                  Draft Email
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
-              onClick={() => onSelect(template)}
-              className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium"
+              onClick={() => {
+                if (variables.length > 0) {
+                  setShowForm(true);
+                } else {
+                  handleDraft({});
+                }
+              }}
+              disabled={isDrafting || isPending}
+              className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm font-medium inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Use this template
+              {isDrafting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <PenLine className="h-4 w-4" />
+              )}
+              {variables.length > 0 ? "Use this template" : "Draft Email"}
             </button>
           )}
         </div>

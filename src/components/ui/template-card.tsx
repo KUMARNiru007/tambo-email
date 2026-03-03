@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { useTamboComponentState, useTamboThreadInput } from "@tambo-ai/react";
 import * as React from "react";
 import { z } from "zod";
-import { Check, FileText, ChevronDown, ChevronUp, Loader2, PenLine } from "lucide-react";
+import { Check, FileText, ChevronDown, ChevronUp, Loader2, PenLine, X } from "lucide-react";
 
 function extractVariables(content: string): string[] {
   const variableRegex = /\{\{([^}]+)\}\}/g;
@@ -19,6 +19,97 @@ function extractVariables(content: string): string[] {
   }
   
   return variables;
+}
+
+function fillTemplate(content: string, values: Record<string, string>): string {
+  return content.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+    const trimmed = key.trim();
+    return values[trimmed] || `{{${trimmed}}}`;
+  });
+}
+
+function formatLabel(variable: string): string {
+  return variable
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function VariableForm({
+  variables,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+}: {
+  variables: string[];
+  onSubmit: (values: Record<string, string>) => void;
+  onCancel: () => void;
+  isSubmitting: boolean;
+}) {
+  const [values, setValues] = React.useState<Record<string, string>>(() =>
+    Object.fromEntries(variables.map((v) => [v, ""])),
+  );
+
+  const allFilled = variables.every((v) => values[v]?.trim());
+
+  return (
+    <div className="border border-primary/30 rounded-lg bg-card overflow-hidden mt-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-primary/5">
+        <div className="flex items-center gap-2">
+          <PenLine className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Fill in template details</span>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="p-1 rounded hover:bg-muted transition-colors"
+        >
+          <X className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {variables.map((variable) => (
+          <div key={variable}>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              {formatLabel(variable)}
+            </label>
+            <input
+              type={variable.toLowerCase().includes("email") ? "email" : "text"}
+              placeholder={`Enter ${formatLabel(variable).toLowerCase()}`}
+              value={values[variable] || ""}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, [variable]: e.target.value }))
+              }
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-muted/20">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={!allFilled || isSubmitting}
+          onClick={() => onSubmit(values)}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <PenLine className="h-3.5 w-3.5" />
+          )}
+          Draft Email
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -98,6 +189,8 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
   ({ title, options, className, ...props }, ref) => {
     const { setValue, submit, isPending } = useTamboThreadInput();
     const [isDrafting, setIsDrafting] = React.useState(false);
+
+    const [showForm, setShowForm] = React.useState(false);
 
     const [state, setState] = useTamboComponentState<TemplateCardState>(
       `template-card`,
@@ -252,49 +345,90 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
         </div>
 
         {/* Helper text */}
-        {state && state.selectedValues.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border bg-primary/5 px-4 py-3 mt-3 rounded-lg">
-            <p className="text-xs text-muted-foreground">
-              {state.selectedValues.length} template{state.selectedValues.length !== 1 && "s"} selected
-            </p>
-            <button
-              type="button"
-              disabled={isPending || isDrafting}
-              onClick={async () => {
+        {state && state.selectedValues.length > 0 && (() => {
+          const selectedTemplates = options?.filter((t) =>
+            state.selectedValues.includes(t.value),
+          ) ?? [];
+          const allVars = Array.from(
+            new Set(selectedTemplates.flatMap((t) => extractVariables(t.content))),
+          );
+
+          return showForm && allVars.length > 0 ? (
+            <VariableForm
+              variables={allVars}
+              isSubmitting={isDrafting}
+              onCancel={() => setShowForm(false)}
+              onSubmit={async (values) => {
                 if (isPending || isDrafting) return;
-                const selected = options?.filter((t) =>
-                  state.selectedValues.includes(t.value),
-                );
-                if (!selected || selected.length === 0) return;
-                const summary = selected
-                  .map((t) => `- Template: ${t.label}\n  Content: ${t.content}`)
-                  .join("\n");
                 setIsDrafting(true);
                 try {
+                  const filled = selectedTemplates
+                    .map(
+                      (t) =>
+                        `- Template: ${t.label}\n  Content: ${fillTemplate(t.content, values)}`,
+                    )
+                    .join("\n");
                   setValue(
-                    `Draft an email using these selected templates:\n${summary}\nShow the EmailPreview component.`,
+                    `Draft an email using these templates with the provided details:\n${filled}\nRecipient email: ${values["email"] || values["Email"] || "not specified"}\nShow the EmailPreview component.`,
                   );
                   await new Promise((r) => setTimeout(r, 20));
                   const p = submit({ streamResponse: true });
                   setValue("");
                   await p;
+                  setShowForm(false);
                 } catch (error) {
                   console.error("Failed to draft from template", error);
                 } finally {
                   setIsDrafting(false);
                 }
               }}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isDrafting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <PenLine className="h-3.5 w-3.5" />
-              )}
-              Draft Email
-            </button>
-          </div>
-        )}
+            />
+          ) : (
+            <div className="flex items-center justify-between border-t border-border bg-primary/5 px-4 py-3 mt-3 rounded-lg">
+              <p className="text-xs text-muted-foreground">
+                {state.selectedValues.length} template{state.selectedValues.length !== 1 && "s"} selected
+              </p>
+              <button
+                type="button"
+                disabled={isPending || isDrafting}
+                onClick={() => {
+                  if (allVars.length > 0) {
+                    setShowForm(true);
+                  } else {
+                    (async () => {
+                      if (isPending || isDrafting) return;
+                      setIsDrafting(true);
+                      try {
+                        const summary = selectedTemplates
+                          .map((t) => `- Template: ${t.label}\n  Content: ${t.content}`)
+                          .join("\n");
+                        setValue(
+                          `Draft an email using these selected templates:\n${summary}\nShow the EmailPreview component.`,
+                        );
+                        await new Promise((r) => setTimeout(r, 20));
+                        const p = submit({ streamResponse: true });
+                        setValue("");
+                        await p;
+                      } catch (error) {
+                        console.error("Failed to draft from template", error);
+                      } finally {
+                        setIsDrafting(false);
+                      }
+                    })();
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isDrafting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <PenLine className="h-3.5 w-3.5" />
+                )}
+                Draft Email
+              </button>
+            </div>
+          );
+        })()}
       </div>
     );
   },
