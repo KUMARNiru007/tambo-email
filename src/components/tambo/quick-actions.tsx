@@ -8,7 +8,7 @@ import {
   FileText,
   Inbox,
   Loader2,
-  Mail,
+  PenLine,
   Reply,
   Send,
   Sparkles,
@@ -23,6 +23,9 @@ const QUICK_ACTIONS = [
     description: "Find emails that need your reply",
     message:
       "What emails need follow-up? Show me which received emails need replies with urgency.",
+    accent: "text-amber-500",
+    accentBg: "bg-amber-500/10",
+    accentBorder: "hover:border-amber-500/40",
   },
   {
     id: "draft",
@@ -31,6 +34,9 @@ const QUICK_ACTIONS = [
     description: "AI-generated responses in seconds",
     message:
       "Draft responses for the selected follow-up emails in a DraftResponsePanel.",
+    accent: "text-emerald-500",
+    accentBg: "bg-emerald-500/10",
+    accentBorder: "hover:border-emerald-500/40",
   },
   {
     id: "inbox",
@@ -39,6 +45,9 @@ const QUICK_ACTIONS = [
     description: "Snapshot of your latest emails",
     message:
       "Summarize my inbox and show my recent received emails with dates.",
+    accent: "text-blue-500",
+    accentBg: "bg-blue-500/10",
+    accentBorder: "hover:border-blue-500/40",
   },
   {
     id: "dashboard",
@@ -47,14 +56,20 @@ const QUICK_ACTIONS = [
     description: "Charts, trends & top contacts",
     message:
       "Show my full email analytics dashboard with charts, response rate, and top contacts.",
+    accent: "text-violet-500",
+    accentBg: "bg-violet-500/10",
+    accentBorder: "hover:border-violet-500/40",
   },
   {
-    id: "simulate",
-    icon: Mail,
-    label: "Simulate Reply",
-    description: "Demo an incoming client email",
+    id: "compose",
+    icon: PenLine,
+    label: "Compose Email",
+    description: "Write a new email with AI help",
     message:
-      "Simulate receiving a reply email from a client confirming they received my message, then show the inbox summary.",
+      "Help me compose a new email. Ask me who to send it to and what it should say, then show the EmailPreview.",
+    accent: "text-pink-500",
+    accentBg: "bg-pink-500/10",
+    accentBorder: "hover:border-pink-500/40",
   },
   {
     id: "templates",
@@ -63,6 +78,9 @@ const QUICK_ACTIONS = [
     description: "Reusable email templates",
     message:
       "Show my saved email templates with variable highlights and expandable previews.",
+    accent: "text-indigo-500",
+    accentBg: "bg-indigo-500/10",
+    accentBorder: "hover:border-indigo-500/40",
   },
 ];
 
@@ -134,16 +152,17 @@ export function QuickActionHero({
               className={cn(
                 "group relative flex items-start gap-3 rounded-xl border border-border/60 bg-card p-3.5 text-left",
                 "transition-all duration-200 ease-out",
-                "hover:border-primary/30 hover:bg-accent/50 hover:shadow-sm",
+                "hover:shadow-sm",
+                action.accentBorder,
                 "active:scale-[0.98]",
                 disabled && "pointer-events-none opacity-40",
               )}
             >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 transition-colors group-hover:bg-primary/10">
+              <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors", action.accentBg)}>
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <Loader2 className={cn("h-4 w-4 animate-spin", action.accent)} />
                 ) : (
-                  <Icon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <Icon className={cn("h-4 w-4", action.accent)} />
                 )}
               </div>
 
@@ -199,11 +218,12 @@ export function QuickActionBar({
               "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/50 bg-card px-2.5 py-1.5",
               "text-xs font-medium text-muted-foreground",
               "transition-all duration-150",
-              "hover:border-primary/30 hover:bg-accent/50 hover:text-foreground",
+              "hover:bg-accent/50 hover:text-foreground",
+              action.accentBorder,
               "disabled:pointer-events-none disabled:opacity-40",
             )}
           >
-            <Icon className="h-3 w-3" />
+            <Icon className={cn("h-3 w-3", action.accent)} />
             {action.label}
           </button>
         );

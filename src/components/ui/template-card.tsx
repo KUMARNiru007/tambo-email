@@ -1,10 +1,10 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useTamboComponentState } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboThreadInput } from "@tambo-ai/react";
 import * as React from "react";
 import { z } from "zod";
-import { Check, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Check, FileText, ChevronDown, ChevronUp, Loader2, PenLine } from "lucide-react";
 
 function extractVariables(content: string): string[] {
   const variableRegex = /\{\{([^}]+)\}\}/g;
@@ -96,7 +96,9 @@ export type TemplateCardProps = z.infer<typeof templateCardSchema> &
  */
 export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
   ({ title, options, className, ...props }, ref) => {
-    // Initialize Tambo component state
+    const { setValue, submit, isPending } = useTamboThreadInput();
+    const [isDrafting, setIsDrafting] = React.useState(false);
+
     const [state, setState] = useTamboComponentState<TemplateCardState>(
       `template-card`,
       { selectedValues: [], expandedCards: [] },
@@ -169,7 +171,7 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
                 <div className="p-3 flex items-start gap-3">
                   {/* Selection checkbox */}
                   <div
-                    className="flex-shrink-0 mt-0.5 cursor-pointer"
+                    className="shrink-0 mt-0.5 cursor-pointer"
                     onClick={() => handleToggleCard(template.value)}
                   >
                     <div
@@ -206,7 +208,7 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
                       {/* Expand/collapse button */}
                       <button
                         onClick={() => handleToggleExpand(template.id)}
-                        className="p-1 rounded hover:bg-muted transition-colors flex-shrink-0"
+                        className="p-1 rounded hover:bg-muted transition-colors shrink-0"
                         aria-label={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? (
@@ -250,11 +252,47 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
         </div>
 
         {/* Helper text */}
-        {options && options.length > 0 && (
-          <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg mt-4">
-             Click the expand icon to preview template content. Variables like{" "}
-            <code className="bg-background px-1 py-0.5 rounded">{"name"}</code>{" "}
-            will be highlighted.
+        {state && state.selectedValues.length > 0 && (
+          <div className="flex items-center justify-between border-t border-border bg-primary/5 px-4 py-3 mt-3 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              {state.selectedValues.length} template{state.selectedValues.length !== 1 && "s"} selected
+            </p>
+            <button
+              type="button"
+              disabled={isPending || isDrafting}
+              onClick={async () => {
+                if (isPending || isDrafting) return;
+                const selected = options?.filter((t) =>
+                  state.selectedValues.includes(t.value),
+                );
+                if (!selected || selected.length === 0) return;
+                const summary = selected
+                  .map((t) => `- Template: ${t.label}\n  Content: ${t.content}`)
+                  .join("\n");
+                setIsDrafting(true);
+                try {
+                  setValue(
+                    `Draft an email using these selected templates:\n${summary}\nShow the EmailPreview component.`,
+                  );
+                  await new Promise((r) => setTimeout(r, 20));
+                  const p = submit({ streamResponse: true });
+                  setValue("");
+                  await p;
+                } catch (error) {
+                  console.error("Failed to draft from template", error);
+                } finally {
+                  setIsDrafting(false);
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDrafting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <PenLine className="h-3.5 w-3.5" />
+              )}
+              Draft Email
+            </button>
           </div>
         )}
       </div>
