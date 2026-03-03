@@ -30,13 +30,8 @@ import {
   Square,
   X,
 } from "lucide-react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import * as React from "react";
-// eslint-disable-next-line @typescript-eslint/promise-function-async
-const DictationButton = dynamic(() => import("./dictation-button"), {
-  ssr: false,
-});
 
 /**
  * CSS variants for the message input container
@@ -1048,7 +1043,6 @@ const MessageInputToolbar = React.forwardRef<
         })}
       </div>
       <div className="flex items-center gap-2">
-        <DictationButton />
         {/* Right side - only submit button */}
         {React.Children.map(children, (child): React.ReactNode => {
           if (
@@ -1067,7 +1061,6 @@ MessageInputToolbar.displayName = "MessageInput.Toolbar";
 
 // --- Exports ---
 export {
-  DictationButton,
   MessageInput,
   MessageInputError,
   MessageInputFileButton,

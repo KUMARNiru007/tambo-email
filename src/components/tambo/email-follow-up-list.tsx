@@ -1,11 +1,12 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useTamboComponentState } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboThreadInput } from "@tambo-ai/react";
 import {
   AlertTriangle,
   Check,
   Clock,
+  Loader2,
   Mail,
   MessageSquare,
   Reply,
@@ -84,6 +85,8 @@ export const EmailFollowUpList = React.forwardRef<
 >(({ title, emails: rawEmails, className, ...props }, ref) => {
   const emails = Array.isArray(rawEmails) ? rawEmails : [];
   const safeTitle = title ?? "Emails needing follow-up";
+  const { setValue, submit, isPending } = useTamboThreadInput();
+  const [isDrafting, setIsDrafting] = React.useState(false);
 
   const [state, setState] = useTamboComponentState<EmailFollowUpListState>(
     "email-follow-up-list",
@@ -231,12 +234,45 @@ export const EmailFollowUpList = React.forwardRef<
       </ul>
 
       {selectedCount > 0 && (
-        <div className="px-5 py-3 border-t border-border bg-primary/5">
-          <p className="text-xs text-primary font-medium text-center">
-             Say <span className="font-semibold">&quot;Draft replies for these&quot;</span> to
-            generate responses for the {selectedCount} selected email
-            {selectedCount !== 1 && "s"}
+        <div className="flex items-center justify-between border-t border-border bg-primary/5 px-5 py-3">
+          <p className="text-xs text-muted-foreground">
+            {selectedCount} email{selectedCount !== 1 && "s"} selected
           </p>
+          <button
+            type="button"
+            disabled={isPending || isDrafting}
+            onClick={async () => {
+              if (isPending || isDrafting) return;
+              const selected = emails.filter((email) =>
+                state?.selectedIds.includes(email.id),
+              );
+              if (selected.length === 0) return;
+              const summary = selected
+                .map((email) => `- ${email.from}: ${email.subject}`)
+                .join("\n");
+              setIsDrafting(true);
+              try {
+                setValue(
+                  `Draft responses for these selected emails:\n${summary}\nUse DraftResponsePanel.`,
+                );
+                await new Promise((r) => setTimeout(r, 20));
+                await submit({ streamResponse: true });
+                setValue("");
+              } catch (error) {
+                console.error("Failed to draft replies", error);
+              } finally {
+                setIsDrafting(false);
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isDrafting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Reply className="h-3.5 w-3.5" />
+            )}
+            Draft Replies
+          </button>
         </div>
       )}
     </div>

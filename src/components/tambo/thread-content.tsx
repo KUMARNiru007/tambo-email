@@ -143,20 +143,10 @@ const ThreadContentMessages = React.forwardRef<
     >
       {isEmpty && (
         <div
-          className="rounded-lg border border-border/60 bg-muted/30 px-4 py-5 text-center"
+          className="px-4 py-2 text-center"
           data-slot="thread-empty-state"
         >
-          <p className="text-sm font-medium text-foreground mb-1">
-            I’m your email assistant
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            I can show your dashboard, summarize your inbox, list contacts and
-            templates, and help you compose and send emails. Generated charts
-            and cards appear in the canvas on the right.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Click a suggestion below or type what you need.
-          </p>
+          <p className="text-xs text-muted-foreground">Choose a quick action to start</p>
         </div>
       )}
       {filteredMessages.map((message, index) => {

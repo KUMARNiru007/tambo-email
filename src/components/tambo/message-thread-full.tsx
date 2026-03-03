@@ -33,7 +33,7 @@ import {
   useThreadHistoryContext,
 } from "@/components/tambo/thread-history";
 import { useMergeRefs } from "@/lib/thread-hooks";
-import type { Suggestion } from "@tambo-ai/react";
+import { useTambo } from "@tambo-ai/react";
 import type { VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,7 @@ import { ContactButton } from "@/components/tambo/contact-button";
 import { ContactListModal } from "@/components/tambo/contact-list-modal";
 import { InboxButton } from "@/components/tambo/inbox-button";
 import { TemplateButton } from "@/components/tambo/template-button";
+import { QuickActionBar, QuickActionHero } from "@/components/tambo/quick-actions";
 
 /**
  * Email list modal component
@@ -355,6 +356,8 @@ export const MessageThreadFull = React.forwardRef<
   ) => {
     const { containerRef, historyPosition } = useThreadContainerContext();
     const mergedRef = useMergeRefs<HTMLDivElement | null>(ref, containerRef);
+    const { thread } = useTambo();
+    const isThreadEmpty = !thread?.messages?.length;
 
     // State for managing email list view
     const [emailView, setEmailView] = React.useState<"sent" | "draft" | "received" | null>(null);
@@ -496,37 +499,6 @@ export const MessageThreadFull = React.forwardRef<
       </ThreadHistory>
     );
 
-    const defaultSuggestions: Suggestion[] = [
-      {
-        id: "suggestion-1",
-        title: "Send email",
-        detailedSuggestion:
-          "Help me compose and send an email. Find the recipient from my contacts if I mention a name, then show me a preview and let me send or save as draft.",
-        messageId: "compose-query",
-      },
-      {
-        id: "suggestion-2",
-        title: "Email dashboard",
-        detailedSuggestion:
-          "Show my email analytics dashboard: charts for emails sent over the last 7 days and by category, plus top contacts and response rate.",
-        messageId: "analytics-query",
-      },
-      {
-        id: "suggestion-3",
-        title: "Inbox summary",
-        detailedSuggestion:
-          "Summarize my inbox and show my recent received emails in a summary card.",
-        messageId: "inbox-query",
-      },
-      {
-        id: "suggestion-4",
-        title: "Manage contacts",
-        detailedSuggestion:
-          "List my email contacts as selectable cards so I can pick who to email or manage them.",
-        messageId: "contacts-query",
-      },
-    ];
-
     return (
       <>
         <div className="flex h-full w-full">
@@ -543,6 +515,7 @@ export const MessageThreadFull = React.forwardRef<
               <ThreadContent variant={variant}>
                 <ThreadContentMessages />
               </ThreadContent>
+              {isThreadEmpty && <QuickActionHero contextKey={contextKey} />}
             </ScrollableMessageContainer>
 
             {/* Message suggestions status */}
@@ -550,10 +523,12 @@ export const MessageThreadFull = React.forwardRef<
               <MessageSuggestionsStatus />
             </MessageSuggestions>
 
+            <QuickActionBar contextKey={contextKey} />
+
             {/* Message input */}
             <div className="px-4 pb-4">
               <MessageInput contextKey={contextKey}>
-                <MessageInputTextarea placeholder="Type your message or paste images..." />
+                <MessageInputTextarea placeholder="Type your message..." />
                 <MessageInputToolbar>
                   <MessageInputFileButton />
                   <MessageInputMcpPromptButton />
@@ -563,10 +538,11 @@ export const MessageThreadFull = React.forwardRef<
               </MessageInput>
             </div>
 
-            {/* Message suggestions - show 4 for empty thread */}
-            <MessageSuggestions initialSuggestions={defaultSuggestions} maxSuggestions={4}>
-              <MessageSuggestionsList />
-            </MessageSuggestions>
+            {!isThreadEmpty && (
+              <MessageSuggestions maxSuggestions={3}>
+                <MessageSuggestionsList />
+              </MessageSuggestions>
+            )}
           </ThreadContainer>
 
           {/* Thread History Sidebar - rendered last if history is on the right */}
