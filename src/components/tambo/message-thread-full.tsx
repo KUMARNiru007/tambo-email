@@ -535,11 +535,6 @@ export const MessageThreadFull = React.forwardRef<
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto px-4 pb-3">
-              {!isThreadEmpty && (
-                <MessageSuggestions maxSuggestions={3}>
-                  <MessageSuggestionsList />
-                </MessageSuggestions>
-              )}
               <QuickActionBar contextKey={contextKey} />
             </div>
           </ThreadContainer>
