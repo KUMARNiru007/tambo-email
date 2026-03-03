@@ -3,8 +3,11 @@
 import { cn } from "@/lib/utils";
 import { useTamboThreadInput } from "@tambo-ai/react";
 import {
+  ArrowRight,
   BarChart3,
+  FileText,
   Inbox,
+  Loader2,
   Mail,
   Reply,
   Send,
@@ -17,56 +20,49 @@ const QUICK_ACTIONS = [
     id: "followups",
     icon: Reply,
     label: "Follow-ups",
-    description: "See received emails to reply",
+    description: "Find emails that need your reply",
     message:
       "What emails need follow-up? Show me which received emails need replies with urgency.",
-    gradient: "from-amber-500/15 to-orange-500/15",
-    iconColor: "text-amber-500",
-    borderColor: "border-amber-500/20 hover:border-amber-500/40",
   },
   {
     id: "draft",
     icon: Send,
     label: "Draft Replies",
-    description: "Generate replies quickly",
+    description: "AI-generated responses in seconds",
     message:
       "Draft responses for the selected follow-up emails in a DraftResponsePanel.",
-    gradient: "from-emerald-500/15 to-green-500/15",
-    iconColor: "text-emerald-500",
-    borderColor: "border-emerald-500/20 hover:border-emerald-500/40",
   },
   {
     id: "inbox",
     icon: Inbox,
     label: "Inbox Summary",
-    description: "Show received emails",
+    description: "Snapshot of your latest emails",
     message:
       "Summarize my inbox and show my recent received emails with dates.",
-    gradient: "from-blue-500/15 to-cyan-500/15",
-    iconColor: "text-blue-500",
-    borderColor: "border-blue-500/20 hover:border-blue-500/40",
   },
   {
     id: "dashboard",
     icon: BarChart3,
     label: "Dashboard",
-    description: "Charts and analytics",
+    description: "Charts, trends & top contacts",
     message:
       "Show my full email analytics dashboard with charts, response rate, and top contacts.",
-    gradient: "from-violet-500/15 to-purple-500/15",
-    iconColor: "text-violet-500",
-    borderColor: "border-violet-500/20 hover:border-violet-500/40",
   },
   {
     id: "simulate",
     icon: Mail,
     label: "Simulate Reply",
-    description: "Demo incoming email",
+    description: "Demo an incoming client email",
     message:
       "Simulate receiving a reply email from a client confirming they received my message, then show the inbox summary.",
-    gradient: "from-pink-500/15 to-rose-500/15",
-    iconColor: "text-pink-500",
-    borderColor: "border-pink-500/20 hover:border-pink-500/40",
+  },
+  {
+    id: "templates",
+    icon: FileText,
+    label: "Templates",
+    description: "Reusable email templates",
+    message:
+      "Show my saved email templates with variable highlights and expandable previews.",
   },
 ];
 
@@ -78,8 +74,9 @@ async function runAction(
 ) {
   setValue(message);
   await new Promise((r) => setTimeout(r, 20));
-  await submit({ contextKey, streamResponse: true });
+  const p = submit({ contextKey, streamResponse: true });
   setValue("");
+  await p;
 }
 
 export function QuickActionHero({
@@ -95,22 +92,30 @@ export function QuickActionHero({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-3xl flex-col items-center gap-6 px-4 py-10",
+        "mx-auto flex w-full max-w-2xl flex-col items-center gap-8 px-4 py-12",
         className,
       )}
     >
-      <div className="text-center">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          AI Email Assistant
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+          <Sparkles className="h-5 w-5 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Start with one click</h2>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            What can I help you with?
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Pick an action or type anything below
+          </p>
+        </div>
       </div>
 
-      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid w-full grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {QUICK_ACTIONS.map((action) => {
           const Icon = action.icon;
+          const isLoading = loadingId === action.id;
           const disabled = Boolean(isPending || loadingId);
+
           return (
             <button
               key={action.id}
@@ -127,18 +132,31 @@ export function QuickActionHero({
                 }
               }}
               className={cn(
-                "flex flex-col items-start gap-2 rounded-xl border bg-linear-to-br p-4 text-left transition-all",
-                "hover:shadow-md hover:scale-[1.01] active:scale-[0.99]",
-                action.gradient,
-                action.borderColor,
-                disabled && "cursor-not-allowed opacity-50 hover:scale-100",
+                "group relative flex items-start gap-3 rounded-xl border border-border/60 bg-card p-3.5 text-left",
+                "transition-all duration-200 ease-out",
+                "hover:border-primary/30 hover:bg-accent/50 hover:shadow-sm",
+                "active:scale-[0.98]",
+                disabled && "pointer-events-none opacity-40",
               )}
             >
-              <div className="rounded-lg bg-background/80 p-2">
-                <Icon className={cn("h-4.5 w-4.5", action.iconColor)} />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/60 transition-colors group-hover:bg-primary/10">
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                ) : (
+                  <Icon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                )}
               </div>
-              <p className="text-sm font-semibold text-foreground">{action.label}</p>
-              <p className="text-xs text-muted-foreground">{action.description}</p>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {action.label}
+                </p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {action.description}
+                </p>
+              </div>
+
+              <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-transparent transition-colors group-hover:text-muted-foreground" />
             </button>
           );
         })}
@@ -159,7 +177,7 @@ export function QuickActionBar({
   const barActions = QUICK_ACTIONS.slice(0, 4);
 
   return (
-    <div className={cn("flex items-center gap-2 overflow-x-auto px-4 pb-2", className)}>
+    <div className={cn("flex items-center gap-1.5 overflow-x-auto px-4 pb-2", className)}>
       {barActions.map((action) => {
         const Icon = action.icon;
         return (
@@ -177,9 +195,15 @@ export function QuickActionBar({
                 setBusy(false);
               }
             }}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-50"
+            className={cn(
+              "inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-border/50 bg-card px-2.5 py-1.5",
+              "text-xs font-medium text-muted-foreground",
+              "transition-all duration-150",
+              "hover:border-primary/30 hover:bg-accent/50 hover:text-foreground",
+              "disabled:pointer-events-none disabled:opacity-40",
+            )}
           >
-            <Icon className={cn("h-3.5 w-3.5", action.iconColor)} />
+            <Icon className="h-3 w-3" />
             {action.label}
           </button>
         );

@@ -1,0 +1,33 @@
+{
+  "name": "Tambo AI Email Assistant",
+  "description": "An AI-powered email assistant built with Tambo that drafts, previews, and sends emails using natural language. Features generative UI, real-time streaming, analytics dashboards, follow-up tracking, and smart templates.",
+  "version": "0.1.0",
+  "authors": ["Tambo Hackathon Team"],
+  "repository": "https://github.com/tambo-ai/tambo-email",
+  "stack": {
+    "framework": "Next.js 15",
+    "ui": "React 19",
+    "ai": "@tambo-ai/react",
+    "email": "Resend",
+    "database": "Supabase",
+    "styling": "Tailwind CSS v4",
+    "language": "TypeScript"
+  },
+  "features": [
+    "AI-powered email drafting and sending",
+    "Generative UI with streaming responses",
+    "Email follow-up tracking with urgency levels",
+    "Analytics dashboard with charts and trends",
+    "Contact management",
+    "Reusable email templates",
+    "Inbox summary and simulation",
+    "Quick action shortcuts",
+    "Authentication with Supabase"
+  ],
+  "routes": {
+    "/": "Landing page",
+    "/login": "Authentication",
+    "/chat": "Main AI email assistant",
+    "/interactables": "Interactive components demo"
+  }
+}
