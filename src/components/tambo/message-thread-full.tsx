@@ -518,14 +518,10 @@ export const MessageThreadFull = React.forwardRef<
               {isThreadEmpty && <QuickActionHero contextKey={contextKey} />}
             </ScrollableMessageContainer>
 
-            {/* Message suggestions status */}
             <MessageSuggestions>
               <MessageSuggestionsStatus />
             </MessageSuggestions>
 
-            <QuickActionBar contextKey={contextKey} />
-
-            {/* Message input */}
             <div className="px-4 pb-4">
               <MessageInput contextKey={contextKey}>
                 <MessageInputTextarea placeholder="Type your message..." />
@@ -538,11 +534,14 @@ export const MessageThreadFull = React.forwardRef<
               </MessageInput>
             </div>
 
-            {!isThreadEmpty && (
-              <MessageSuggestions maxSuggestions={3}>
-                <MessageSuggestionsList />
-              </MessageSuggestions>
-            )}
+            <div className="flex items-center gap-1.5 overflow-x-auto px-4 pb-3">
+              {!isThreadEmpty && (
+                <MessageSuggestions maxSuggestions={3}>
+                  <MessageSuggestionsList />
+                </MessageSuggestions>
+              )}
+              <QuickActionBar contextKey={contextKey} />
+            </div>
           </ThreadContainer>
 
           {/* Thread History Sidebar - rendered last if history is on the right */}

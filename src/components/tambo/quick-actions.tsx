@@ -196,7 +196,7 @@ export function QuickActionBar({
   const barActions = QUICK_ACTIONS.slice(0, 4);
 
   return (
-    <div className={cn("flex items-center gap-1.5 overflow-x-auto px-4 pb-2", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
       {barActions.map((action) => {
         const Icon = action.icon;
         return (

@@ -83,10 +83,15 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
   const [isDrafting, setIsDrafting] = React.useState(false);
   const { setValue, submit, isPending } = useTamboThreadInput();
   const variables = extractVariables(template.content);
-  const [formValues, setFormValues] = React.useState<Record<string, string>>(() =>
-    Object.fromEntries(variables.map((v) => [v, ""])),
-  );
-  const allFilled = variables.every((v) => formValues[v]?.trim());
+  const hasEmailVar = variables.some((v) => v.toLowerCase().includes("email"));
+  const [formValues, setFormValues] = React.useState<Record<string, string>>(() => {
+    const entries = variables.map((v) => [v, ""] as [string, string]);
+    if (!hasEmailVar) entries.unshift(["_recipient_email", ""]);
+    return Object.fromEntries(entries);
+  });
+  const allFilled =
+    variables.every((v) => formValues[v]?.trim()) &&
+    (hasEmailVar || formValues["_recipient_email"]?.trim());
   
   const handleCopy = async () => {
     await navigator.clipboard.writeText(template.content);
@@ -94,10 +99,15 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDraft = async (values: Record<string, string>) => {
+  const handleDraft = async (rawValues: Record<string, string>) => {
     if (isPending || isDrafting) return;
     setIsDrafting(true);
     try {
+      const values = { ...rawValues };
+      if (values["_recipient_email"]) {
+        values["email"] = values["_recipient_email"];
+        delete values["_recipient_email"];
+      }
       const filled = fillTemplate(template.content, values);
       const emailField = values["email"] || values["Email"] || values["recipient_email"] || "not specified";
       setValue(
@@ -192,6 +202,22 @@ function TemplateCard({ template, onSelect }: { template: Template; onSelect?: (
               </div>
 
               <div className="p-4 space-y-3">
+                {!hasEmailVar && (
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Recipient Email
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="Enter recipient email"
+                      value={formValues["_recipient_email"] || ""}
+                      onChange={(e) =>
+                        setFormValues((prev) => ({ ...prev, _recipient_email: e.target.value }))
+                      }
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
+                    />
+                  </div>
+                )}
                 {variables.map((variable) => (
                   <div key={variable}>
                     <label className="block text-xs font-medium text-muted-foreground mb-1">

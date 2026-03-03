@@ -45,11 +45,26 @@ function VariableForm({
   onCancel: () => void;
   isSubmitting: boolean;
 }) {
+  const hasEmailVar = variables.some((v) => v.toLowerCase().includes("email"));
   const [values, setValues] = React.useState<Record<string, string>>(() =>
-    Object.fromEntries(variables.map((v) => [v, ""])),
+    Object.fromEntries([
+      ...variables.map((v) => [v, ""]),
+      ...(!hasEmailVar ? [["_recipient_email", ""]] : []),
+    ]),
   );
 
-  const allFilled = variables.every((v) => values[v]?.trim());
+  const allFilled =
+    variables.every((v) => values[v]?.trim()) &&
+    (hasEmailVar || values["_recipient_email"]?.trim());
+
+  const handleSubmit = () => {
+    const out = { ...values };
+    if (!hasEmailVar && out["_recipient_email"]) {
+      out["email"] = out["_recipient_email"];
+      delete out["_recipient_email"];
+    }
+    onSubmit(out);
+  };
 
   return (
     <div className="border border-primary/30 rounded-lg bg-card overflow-hidden mt-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -68,6 +83,22 @@ function VariableForm({
       </div>
 
       <div className="p-4 space-y-3">
+        {!hasEmailVar && (
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Recipient Email
+            </label>
+            <input
+              type="email"
+              placeholder="Enter recipient email address"
+              value={values["_recipient_email"] || ""}
+              onChange={(e) =>
+                setValues((prev) => ({ ...prev, _recipient_email: e.target.value }))
+              }
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-colors"
+            />
+          </div>
+        )}
         {variables.map((variable) => (
           <div key={variable}>
             <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -97,7 +128,7 @@ function VariableForm({
         <button
           type="button"
           disabled={!allFilled || isSubmitting}
-          onClick={() => onSubmit(values)}
+          onClick={handleSubmit}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? (
@@ -112,9 +143,6 @@ function VariableForm({
   );
 }
 
-/**
- * Render template content with highlighted variables
- */
 function TemplateContentPreview({ content }: { content: string }) {
   const parts = content.split(/(\{\{[^}]+\}\})/g);
   
@@ -139,22 +167,19 @@ function TemplateContentPreview({ content }: { content: string }) {
   );
 }
 
-// Define option type for template cards
 export type TemplateCardItem = {
   id: string;
-  label: string; // Template name
-  value: string; // Template ID or name for selection
-  description?: string; // Short description
-  content: string; // Full template content with variables
+  label: string;
+  value: string;
+  description?: string;
+  content: string;
 };
 
-// Define the component state type
 export type TemplateCardState = {
   selectedValues: string[];
-  expandedCards: string[]; // Track which cards are expanded
+  expandedCards: string[];
 };
 
-// Define the component props schema with Zod
 export const templateCardSchema = z.object({
   title: z.string().describe("Title displayed above the template cards"),
   options: z
@@ -175,16 +200,9 @@ export const templateCardSchema = z.object({
     .describe("Array of email templates to display"),
 });
 
-// Define the props type based on the Zod schema
 export type TemplateCardProps = z.infer<typeof templateCardSchema> &
   React.HTMLAttributes<HTMLDivElement>;
 
-/**
- * TemplateCard Component
- *
- * A specialized component for displaying email templates with variable highlighting,
- * expandable previews, and selection capabilities.
- */
 export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
   ({ title, options, className, ...props }, ref) => {
     const { setValue, submit, isPending } = useTamboThreadInput();
@@ -197,7 +215,6 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
       { selectedValues: [], expandedCards: [] },
     );
 
-    // Handle template selection
     const handleToggleCard = (value: string) => {
       if (!state) return;
 
@@ -213,7 +230,6 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
       setState({ ...state, selectedValues });
     };
 
-    // Handle card expansion
     const handleToggleExpand = (id: string) => {
       if (!state) return;
 
@@ -260,9 +276,7 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
                   !isSelected && "border-border hover:border-primary/30"
                 )}
               >
-                {/* Header */}
                 <div className="p-3 flex items-start gap-3">
-                  {/* Selection checkbox */}
                   <div
                     className="shrink-0 mt-0.5 cursor-pointer"
                     onClick={() => handleToggleCard(template.value)}
@@ -279,7 +293,6 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
                     </div>
                   </div>
 
-                  {/* Template info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
@@ -331,7 +344,6 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
                   </div>
                 </div>
 
-                {/* Expandable content preview */}
                 {isExpanded && (
                   <div className="px-3 pb-3 border-t border-border pt-3">
                     <div className="bg-muted/30 rounded-lg p-3 max-h-48 overflow-y-auto">
@@ -344,7 +356,6 @@ export const TemplateCard = React.forwardRef<HTMLDivElement, TemplateCardProps>(
           })}
         </div>
 
-        {/* Helper text */}
         {state && state.selectedValues.length > 0 && (() => {
           const selectedTemplates = options?.filter((t) =>
             state.selectedValues.includes(t.value),
